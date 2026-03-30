@@ -1,0 +1,1059 @@
+openapi: 3.0.0
+info:
+  title: GymPal App API
+  description: |
+    API documentation for the GymPal App backend services.
+    This API provides endpoints for user management, workout tracking, exercise data, and real-time training sessions.
+  version: 1.0.0
+  contact:
+    name: GymPal Support
+    email: support@gympal.com
+
+servers:
+  - url: https://gympalbackend-production.up.railway.app
+    description: Production server
+  - url: http://localhost:5000
+    description: Local development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from the /api/users/login endpoint
+
+  schemas:
+    User:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          description: Unique identifier for the user
+        username:
+          type: string
+          description: Username for login
+        role:
+          type: string
+          enum: [client, trainer]
+          description: User role determining access permissions
+      required:
+        - username
+        - role
+
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username for login
+        password:
+          type: string
+          format: password
+          description: User password
+      required:
+        - username
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Login successful
+        token:
+          type: string
+          description: JWT access token
+        refreshToken:
+          type: string
+          description: JWT refresh token
+        user_id:
+          type: integer
+          format: int64
+          description: User ID
+        role:
+          type: string
+          description: User role (client or trainer)
+
+    RefreshTokenRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          description: JWT refresh token
+      required:
+        - refreshToken
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: New JWT access token
+        refreshToken:
+          type: string
+          description: New JWT refresh token
+
+    CreateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username for the new user
+        password:
+          type: string
+          format: password
+          description: Password for the new user (optional, defaults to 'password123')
+        role:
+          type: string
+          enum: [client, trainer]
+          description: User role (optional, defaults to 'client')
+      required:
+        - username
+
+    CreateUserResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: User created successfully
+        user:
+          $ref: '#/components/schemas/User'
+
+    Exercise:
+      type: object
+      properties:
+        exercise_id:
+          type: integer
+          format: int64
+          description: Unique identifier for the exercise
+        name:
+          type: string
+          description: Name of the exercise
+        description:
+          type: string
+          description: Description of the exercise
+        muscle_group:
+          type: string
+          description: Primary muscle group targeted by the exercise
+        difficulty:
+          type: string
+          enum: [Novice, Beginner, Intermediate, Advanced]
+          description: Difficulty level of the exercise
+
+    Workout:
+      type: object
+      properties:
+        workout_id:
+          type: integer
+          format: int64
+          description: Unique identifier for the workout
+        name:
+          type: string
+          description: Name of the workout
+        trainer_id:
+          type: integer
+          format: int64
+          description: ID of the trainer who created the workout
+        date:
+          type: string
+          format: date-time
+          description: Date when the workout was created
+        difficulty:
+          type: string
+          enum: [Novice, Beginner, Intermediate, Advanced]
+          description: Difficulty level of the workout
+        exercises:
+          type: array
+          items:
+            type: object
+            properties:
+              exercise_id:
+                type: integer
+                format: int64
+              reps:
+                type: integer
+              sets:
+                type: integer
+              weight:
+                type: number
+                format: float
+
+    GroupWorkout:
+      type: object
+      properties:
+        group_workout_id:
+          type: integer
+          format: int64
+          description: Unique identifier for the group workout
+        name:
+          type: string
+          description: Name of the group workout
+        trainer_id:
+          type: integer
+          format: int64
+          description: ID of the trainer who created the group workout
+        date:
+          type: string
+          format: date-time
+          description: Date when the group workout was created
+        difficulty:
+          type: string
+          enum: [Novice, Beginner, Intermediate, Advanced]
+          description: Difficulty level of the group workout
+        exercises:
+          type: array
+          items:
+            $ref: '#/components/schemas/Exercise'
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: integer
+                format: int64
+              participant_name:
+                type: string
+              weights:
+                type: object
+                additionalProperties:
+                  type: number
+              reps:
+                type: object
+                additionalProperties:
+                  type: integer
+
+    IntakeData:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          description: User ID associated with the intake data
+        client_name:
+          type: string
+          description: Name of the client
+        sex:
+          type: string
+          description: Sex of the client (1 = Female, 2 = Male)
+        age:
+          type: string
+          description: Age group (1-5)
+        fat_percentage:
+          type: string
+          description: Fat percentage (1-5)
+        height_cm:
+          type: string
+          description: Height in centimeters
+        weight_category:
+          type: string
+          description: Weight category (1-5)
+        ffmi:
+          type: string
+          description: FFMI (1-5)
+        athleticism_score:
+          type: string
+          description: Athleticism score (1-5)
+        movement_shoulder:
+          type: string
+          description: Shoulder mobility (1-5)
+        movement_hips:
+          type: string
+          description: Hip mobility (1-5)
+        movement_ankles:
+          type: string
+          description: Ankle mobility (1-5)
+        movement_thoracic:
+          type: string
+          description: Thoracic mobility (1-5)
+        genetics:
+          type: string
+          description: Genetics score (1-5)
+        bmi:
+          type: string
+          description: Calculated BMI
+
+    LifestyleData:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          description: User ID associated with the lifestyle data
+        sleep_quality:
+          type: string
+          description: Sleep quality score (1-5)
+        stress_level:
+          type: string
+          description: Stress level score (1-5)
+        nutrition_quality:
+          type: string
+          description: Nutrition quality score (1-5)
+        hydration_level:
+          type: string
+          description: Hydration level score (1-5)
+        alcohol_consumption:
+          type: string
+          description: Alcohol consumption score (1-5)
+        smoking_status:
+          type: string
+          description: Smoking status score (1-5)
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+        details:
+          type: string
+          description: Detailed error information (optional)
+
+paths:
+  /api/health:
+    get:
+      summary: Health check endpoint
+      description: Checks if the API server and database connection are working properly
+      tags:
+        - System
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: OK
+                  timestamp:
+                    type: string
+                    format: date-time
+        '500':
+          description: Server or database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/users/login:
+    post:
+      summary: User login
+      description: Authenticates a user and returns JWT tokens
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/users/register:
+    post:
+      summary: Register new user
+      description: Creates a new user account
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateUserResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/users/refresh:
+    post:
+      summary: Refresh access token
+      description: Uses a refresh token to obtain a new access token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/users/validate-token:
+    get:
+      summary: Validate access token
+      description: Checks if the provided access token is valid
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Token is valid
+                  user:
+                    type: object
+                    properties:
+                      user_id:
+                        type: integer
+                      role:
+                        type: string
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/users/all:
+    get:
+      summary: Get all users
+      description: Retrieves a list of all users
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/users/{user_id}:
+    get:
+      summary: Get user by ID
+      description: Retrieves a specific user by their ID
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update user
+      description: Updates a user's information
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User updated successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/users/check/{username}:
+    get:
+      summary: Check if user exists
+      description: Checks if a user with the given username exists
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Username to check
+      responses:
+        '200':
+          description: User exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/exercises:
+    get:
+      summary: Get all exercises
+      description: Retrieves a list of all exercises
+      tags:
+        - Exercises
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of exercises
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Exercise'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/workouts:
+    get:
+      summary: Get all workouts
+      description: Retrieves a list of all workouts
+      tags:
+        - Workouts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of workouts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Workout'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new workout
+      description: Creates a new workout
+      tags:
+        - Workouts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Workout'
+      responses:
+        '201':
+          description: Workout created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Workout created successfully
+                  workout_id:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/group-workouts:
+    get:
+      summary: Get all group workouts
+      description: Retrieves a list of all group workouts
+      tags:
+        - Group Workouts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of group workouts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupWorkout'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new group workout
+      description: Creates a new group workout
+      tags:
+        - Group Workouts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupWorkout'
+      responses:
+        '201':
+          description: Group workout created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Group workout created successfully
+                  group_workout_id:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/group-workouts/{group_workout_id}:
+    get:
+      summary: Get group workout by ID
+      description: Retrieves a specific group workout by its ID
+      tags:
+        - Group Workouts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: group_workout_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group workout ID
+      responses:
+        '200':
+          description: Group workout details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupWorkout'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Group workout not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update group workout
+      description: Updates a group workout
+      tags:
+        - Group Workouts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: group_workout_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group workout ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupWorkout'
+      responses:
+        '200':
+          description: Group workout updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Group workout updated successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Group workout not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/intake:
+    post:
+      summary: Submit intake data
+      description: Submits client intake assessment data
+      tags:
+        - Intake
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntakeData'
+      responses:
+        '201':
+          description: Intake data submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Intake data submitted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/intake/{user_id}:
+    get:
+      summary: Get intake data by user ID
+      description: Retrieves intake data for a specific user
+      tags:
+        - Intake
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      responses:
+        '200':
+          description: Intake data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntakeData'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Intake data not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/lifestyle-data:
+    post:
+      summary: Submit lifestyle data
+      description: Submits client lifestyle data
+      tags:
+        - Lifestyle
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LifestyleData'
+      responses:
+        '201':
+          description: Lifestyle data submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Lifestyle data submitted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/lifestyle-data/{user_id}:
+    get:
+      summary: Get lifestyle data by user ID
+      description: Retrieves lifestyle data for a specific user
+      tags:
+        - Lifestyle
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      responses:
+        '200':
+          description: Lifestyle data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifestyleData'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Lifestyle data not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+tags:
+  - name: System
+    description: System-related endpoints
+  - name: Authentication
+    description: Authentication and user management
+  - name: Users
+    description: User-related operations
+  - name: Exercises
+    description: Exercise-related operations
+  - name: Workouts
+    description: Workout-related operations
+  - name: Group Workouts
+    description: Group workout-related operations
+  - name: Intake
+    description: Client intake assessment
+  - name: Lifestyle
+    description: Client lifestyle data

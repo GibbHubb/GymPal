@@ -1,0 +1,91 @@
+import React, { useEffect, useState } from 'react';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import AppNavigator from './screens/Navigation';
+import ErrorBoundary from './ErrorBoundary';
+import { View, ActivityIndicator } from 'react-native';
+import { navigationRef } from './utils/RootNavigation';
+import { Theme } from './constants/Theme';
+
+const API_URL = 'https://gympalbackend-production.up.railway.app/api';
+
+const GymPalTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: Theme.colors.background,
+    text: Theme.colors.text,
+  },
+};
+
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState('');
+  const [initialRoute, setInitialRoute] = useState('Login');
+  const [loading, setLoading] = useState(true);
+
+  const refreshAuth = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const role = await AsyncStorage.getItem('role');
+
+      if (!token) throw new Error("No token");
+
+      const response = await axios.get(`${API_URL}/users/validate-token`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 200) {
+        setIsAuthenticated(true);
+        setUserRole(role);
+
+        const lastRoute = await AsyncStorage.getItem('lastRoute');
+        if (lastRoute) setInitialRoute(lastRoute);
+      } else {
+        throw new Error("Token invalid");
+      }
+    } catch (error) {
+      console.warn("❌ Token check failed:", error.message);
+      await AsyncStorage.clear();
+      setIsAuthenticated(false);
+      setUserRole('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshAuth();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Theme.colors.background }}>
+        <ActivityIndicator size="large" color={Theme.colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <NavigationContainer
+        ref={navigationRef}
+        theme={GymPalTheme}
+        onStateChange={async (state) => {
+          const currentRoute = state.routes[state.index]?.name;
+          if (currentRoute) {
+            await AsyncStorage.setItem('lastRoute', currentRoute);
+          }
+        }}
+      >
+        <AppNavigator
+          isAuthenticated={isAuthenticated}
+          userRole={userRole}
+          refreshAuth={refreshAuth}
+          initialRoute={isAuthenticated ? initialRoute : 'Login'}
+        />
+      </NavigationContainer>
+    </ErrorBoundary>
+  );
+}
