@@ -403,7 +403,7 @@ const TVScreen = () => {
 
 const styles = StyleSheet.create({
   fullScreen: { flex: 1, backgroundColor: "#fff", paddingTop: 20 },
-  scrollContent: { paddingGymPaltal: 5, paddingBottom: 40, flexGrow: 1 },
+  scrollContent: { paddingHorizontal: 5, paddingBottom: 40, flexGrow: 1 },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff", padding: 20 },
   loadingText: { fontSize: 24, fontWeight: "bold", color: "#3274ba", marginBottom: 20 },
   sessionInfoText: { fontSize: 18, color: "#333", marginBottom: 15 },
@@ -453,9 +453,9 @@ const styles = StyleSheet.create({
   refreshButton: {
     backgroundColor: "#f7bf0b",
     paddingVertical: 10,
-    paddingGymPaltal: 15,
+    paddingHorizontal: 15,
     borderRadius: 8,
-    marginGymPaltal: 2,
+    marginHorizontal: 2,
     flex: 1,
   },
   refreshButtonText: {
@@ -467,9 +467,9 @@ const styles = StyleSheet.create({
   leaveButton: {
     backgroundColor: "#dc3545",
     paddingVertical: 10,
-    paddingGymPaltal: 15,
+    paddingHorizontal: 15,
     borderRadius: 8,
-    marginGymPaltal: 2,
+    marginHorizontal: 2,
     flex: 1,
   },
   leaveButtonText: {
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#3274ba",
     paddingVertical: 8,
-    paddingGymPaltal: 15,
+    paddingHorizontal: 15,
     marginBottom: 10,
   },
   sessionInfoName: {
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   leaveSessionButton: {
     backgroundColor: "#dc3545",
     paddingVertical: 5,
-    paddingGymPaltal: 10,
+    paddingHorizontal: 10,
     borderRadius: 4,
   },
   leaveSessionText: {
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   timerRunning: { backgroundColor: "#e6f7ff", borderRadius: 8 },
   timerWarning: { color: "#ff4d4f", backgroundColor: "#fff1f0" },
   groupLegend: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
-  groupBox: { flexDirection: "row", alignItems: "center", marginGymPaltal: 8, marginBottom: 4 },
+  groupBox: { flexDirection: "row", alignItems: "center", marginHorizontal: 8, marginBottom: 4 },
   colorCircle: { width: 16, height: 16, borderRadius: 8, marginRight: 6 },
   groupLabel: { fontSize: 14, color: "#1A1A1A" },
   headerRow: { flexDirection: "row", marginBottom: 8 },
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 12,
-    paddingGymPaltal: 10,
+    paddingHorizontal: 10,
     backgroundColor: "#8ebce6",
     borderRadius: 6,
     marginRight: 4,
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 6,
-    marginGymPaltal: 2,
+    marginHorizontal: 2,
   },
   headerCellText: {
     color: "#1A1A1A",
@@ -556,13 +556,13 @@ const styles = StyleSheet.create({
   },
   dataCell: {
     paddingVertical: 16,
-    paddingGymPaltal: 12,
+    paddingHorizontal: 12,
     width: 140,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#f7f7f7",
     borderRadius: 4,
-    marginGymPaltal: 2,
+    marginHorizontal: 2,
   },
   dataText: {
     fontSize: 14,

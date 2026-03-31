@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     left: 20,
     backgroundColor: '#f7bf0b', // GymPal Gold
     paddingVertical: 8,
-    paddingGymPaltal: 14,
+    paddingHorizontal: 14,
     borderRadius: 8,
   },
   backButtonText: {
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   difficultyButton: {
     flex: 1,
     padding: 12,
-    marginGymPaltal: 5,
+    marginHorizontal: 5,
     backgroundColor: '#f8f8f8',
     borderRadius: 8,
     alignItems: 'center',

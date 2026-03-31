@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,17 @@ import {
 } from 'react-native';
 import { fetchGroupWorkoutDetails, addParticipantsToWorkout, fetchSuggestedWeights, editGroupWorkout } from '../../utils/api';
 import { checkUserExists, fetchExercises, addExerciseToWorkout, api } from '../../utils/api';
+
+const MemoizedInput = memo(({ value, onChange, placeholder, style }) => (
+  <TextInput
+    style={style}
+    value={value}
+    onChangeText={onChange}
+    keyboardType="numeric"
+    textAlign="center"
+    placeholder={placeholder}
+  />
+));
 
 
 
@@ -26,6 +37,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
   const [exerciseOptions, setExerciseOptions] = useState([]);
   const [newExercise, setNewExercise] = useState('');
   const [allExercises, setAllExercises] = useState([]); // ✅ Store all exercises globally
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const loadExercises = async () => {
@@ -106,7 +118,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
     loadWorkoutDetails();
   }, [workoutId]); // ✅ Dependency list prevents infinite loops
 
-  const handleUpdateValue = (userId, exerciseId, field, value) => {
+  const handleUpdateValue = useCallback((userId, exerciseId, field, value) => {
     setParticipants((prevParticipants) =>
       prevParticipants.map((participant) => {
         if (participant.user_id === userId) {
@@ -121,7 +133,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
         return participant;
       })
     );
-  };
+  }, []);
 
   const handleSearchExercise = (query) => {
     setExerciseSearchQuery(query); // Update search bar value
@@ -230,6 +242,7 @@ const handleRemoveParticipant = (userId) => {
 
   const handleSaveChanges = async () => {
     try {
+      setIsSaving(true);
       const updatedWorkout = {
         ...workout,
         participants,
@@ -263,6 +276,8 @@ const handleRemoveParticipant = (userId) => {
     } catch (error) {
       console.error('❌ Error updating workout:', error);
       Alert.alert('Error', 'Failed to update workout.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -447,31 +462,32 @@ const handleRemoveParticipant = (userId) => {
                     <Text style={styles.exerciseText}>{exercise.exercise_name}</Text>
                   </View>
 
-                  {participants.map((participant, participantIndex) => (
-                    <View key={`${participantIndex}-${exercise.exercise_id}`} style={styles.inputRow}>
-                      <View style={styles.dataBox}>
-                        <TextInput
-                          style={[styles.dataText]}
-                          value={String(participant.weights?.[exercise.exercise_id] || '')}
-                          onChangeText={(text) => handleUpdateValue(participant.user_id, exercise.exercise_id, 'weights', text)}
-                          keyboardType="numeric"
-                          textAlign="center"
-                          placeholder="0"
-                        />
-                      </View>
+                  {participants.map((participant, participantIndex) => {
+                    const weightVal = String(participant.weights?.[exercise.exercise_id] || '');
+                    const repVal = String(participant.reps?.[exercise.exercise_id] || '');
+                    
+                    return (
+                      <View key={`${participantIndex}-${exercise.exercise_id}`} style={styles.inputRow}>
+                        <View style={styles.dataBox}>
+                          <MemoizedInput
+                            style={styles.dataText}
+                            value={weightVal}
+                            onChange={(text) => handleUpdateValue(participant.user_id, exercise.exercise_id, 'weights', text)}
+                            placeholder="0"
+                          />
+                        </View>
 
-                      <View style={styles.dataBox}>
-                        <TextInput
-                          style={[styles.dataText]}
-                          value={String(participant.reps?.[exercise.exercise_id] || '')}
-                          onChangeText={(text) => handleUpdateValue(participant.user_id, exercise.exercise_id, 'reps', text)}
-                          keyboardType="numeric"
-                          textAlign="center"
-                          placeholder="0"
-                        />
+                        <View style={styles.dataBox}>
+                          <MemoizedInput
+                            style={styles.dataText}
+                            value={repVal}
+                            onChange={(text) => handleUpdateValue(participant.user_id, exercise.exercise_id, 'reps', text)}
+                            placeholder="0"
+                          />
+                        </View>
                       </View>
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
               ))}
 
@@ -485,8 +501,8 @@ const handleRemoveParticipant = (userId) => {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.saveButton}>
-            <Text onPress={handleSaveChanges} style={styles.buttonText}>Save Changes</Text>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges} disabled={isSaving}>
+            <Text style={styles.buttonText}>{isSaving ? "Saving..." : "Save Changes"}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.startButton} onPress={() => {
             navigation.navigate('TrainerScreen', { workoutId, workoutDetails: { ...workout, participants, exercises } });
@@ -558,7 +574,7 @@ const styles = StyleSheet.create({
   addButton: {
     backgroundColor: '#f7bf0b',
     paddingVertical: 10,
-    paddingGymPaltal: 16,
+    paddingHorizontal: 16,
     borderRadius: 8,
     marginLeft: 8,
   },
@@ -621,7 +637,7 @@ const styles = StyleSheet.create({
   exerciseCell: {
     width: 120,
     paddingVertical: 12,
-    paddingGymPaltal: 10,
+    paddingHorizontal: 10,
     backgroundColor: '#8ebce6',
   },
   exerciseText: {
@@ -640,11 +656,11 @@ const styles = StyleSheet.create({
   dataBox: {
     backgroundColor: '#f8f8f8',
     paddingVertical: 6,
-    paddingGymPaltal: 12,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#8ebce6',
     borderRadius: 8,
-    marginGymPaltal: 4,
+    marginHorizontal: 4,
     minWidth: 60,
     alignItems: 'center',
   },
@@ -706,7 +722,7 @@ const styles = StyleSheet.create({
   },
   dropdownItem: {
     paddingVertical: 8,
-    paddingGymPaltal: 10,
+    paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
     zIndex: 100,

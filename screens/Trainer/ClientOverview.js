@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   addButton: { backgroundColor: '#32a852', padding: 12, borderRadius: 8, marginBottom: 16 },
   addButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   row: { flex: 1, justifyContent: 'space-between', marginBottom: 12 },
-  userCard: { flex: 1, alignItems: 'center', backgroundColor: '#f6b000', padding: 12, marginGymPaltal: 4, borderRadius: 8 },
+  userCard: { flex: 1, alignItems: 'center', backgroundColor: '#f6b000', padding: 12, marginHorizontal: 4, borderRadius: 8 },
   username: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' },
 
   /** ✅ Restored Beautiful Modal Styles **/

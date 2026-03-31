@@ -150,7 +150,7 @@ const IntakeScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   topContainer: {
-    paddingGymPaltal: Theme.spacing.l,
+    paddingHorizontal: Theme.spacing.l,
     paddingTop: Theme.spacing.l,
     alignItems: 'flex-start',
     width: '100%',
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     paddingVertical: Theme.spacing.s,
-    paddingGymPaltal: Theme.spacing.m,
+    paddingHorizontal: Theme.spacing.m,
   },
   backButtonText: {
     color: '#FFFFFF',

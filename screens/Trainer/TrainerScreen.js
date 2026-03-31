@@ -52,6 +52,7 @@ export default function TrainerScreen({ route, navigation }) {
   const [sessionActive, setSessionActive] = useState(false)
   const [serverUrl, setServerUrl] = useState("https://gympalbackend-production.up.railway.app")
   const [debugMessages, setDebugMessages] = useState([])
+  const [showDebug, setShowDebug] = useState(false)
 
   // Add debug message helper
   const addDebugMessage = (message) => {
@@ -186,10 +187,13 @@ export default function TrainerScreen({ route, navigation }) {
     if (workoutDetails) setWorkout(workoutDetails)
   }, [workoutDetails])
 
-  // This effect syncs ALL workout data whenever it changes
+  // This effect syncs ALL workout data whenever it changes (debounced)
   useEffect(() => {
     if (socketConnected) {
-      broadcastWorkoutData()
+      const handler = setTimeout(() => {
+        broadcastWorkoutData()
+      }, 500)
+      return () => clearTimeout(handler)
     }
   }, [workout, socketConnected])
 
@@ -369,6 +373,14 @@ export default function TrainerScreen({ route, navigation }) {
     emitSyncData(3000) // Immediately emit with reset timer
   }
 
+  const handleAddTime = (amount) => {
+    setTimer((prev) => {
+      const newTime = Math.max(0, prev + amount)
+      emitSyncData(newTime)
+      return newTime
+    })
+  }
+
   const handleFinishWorkout = async () => {
     if (!userId) {
       Alert.alert("❌ Error", "User ID not found. Please log in again.")
@@ -513,11 +525,19 @@ export default function TrainerScreen({ route, navigation }) {
       <View style={styles.footer}>
         <View style={styles.timerContainer}>
           <Text style={styles.timerText}>{formatTime(timer)}</Text>
+          <View style={styles.timerAdjustRow}>
+            <TouchableOpacity onPress={() => handleAddTime(-60)} style={styles.timeAdjustBtn}>
+              <Text style={styles.timeAdjustText}>-1m</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleAddTime(60)} style={styles.timeAdjustBtn}>
+              <Text style={styles.timeAdjustText}>+1m</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.timerControls}>
           {!timerRunning ? (
             <TouchableOpacity style={styles.startButton} onPress={handleStartTimer}>
-              <Text style={styles.startButtonText}>Start Timer</Text>
+              <Text style={styles.startButtonText}>Start</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.pauseButton} onPress={handlePauseTimer}>
@@ -533,18 +553,26 @@ export default function TrainerScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.finishButton} onPress={handleFinishWorkout} disabled={isFinishing}>
-        <Text style={styles.finishButtonText}>{isFinishing ? "Saving..." : "Finish Workout"}</Text>
-      </TouchableOpacity>
+      <View style={styles.bottomControls}>
+        <TouchableOpacity style={styles.debugToggle} onPress={() => setShowDebug(!showDebug)}>
+          <Text style={styles.debugToggleText}>🐛</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.finishButton} onPress={handleFinishWorkout} disabled={isFinishing}>
+          <Text style={styles.finishButtonText}>{isFinishing ? "Saving..." : "Finish Workout"}</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Debug messages */}
-      <ScrollView style={styles.debugContainer}>
-        {debugMessages.map((msg, idx) => (
-          <Text key={idx} style={styles.debugText}>
-            {msg}
-          </Text>
-        ))}
-      </ScrollView>
+      {showDebug && (
+        <ScrollView style={styles.debugContainer}>
+          {debugMessages.map((msg, idx) => (
+            <Text key={idx} style={styles.debugText}>
+              {msg}
+            </Text>
+          ))}
+        </ScrollView>
+      )}
     </View>
   )
 }
@@ -576,7 +604,7 @@ const styles = StyleSheet.create({
   },
   sessionStatusButton: {
     marginLeft: 8,
-    paddingGymPaltal: 8,
+    paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 4,
   },
@@ -598,17 +626,17 @@ const styles = StyleSheet.create({
   subHeaderContainer: { flexDirection: "row", justifyContent: "space-evenly", flex: 1 },
   subHeaderText: { fontSize: 14, fontWeight: "bold", color: "#1A1A1A", flex: 1, textAlign: "center" },
   row: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#ddd" },
-  exerciseCell: { width: 120, paddingVertical: 12, paddingGymPaltal: 10, backgroundColor: "#8ebce6" },
+  exerciseCell: { width: 120, paddingVertical: 12, paddingHorizontal: 10, backgroundColor: "#8ebce6" },
   exerciseText: { fontSize: 16, fontWeight: "bold", color: "#fff", textAlign: "center" },
   inputRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", padding: 6 },
   dataBox: {
     backgroundColor: "#f8f8f8",
     paddingVertical: 6,
-    paddingGymPaltal: 12,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: "#8ebce6",
     borderRadius: 8,
-    marginGymPaltal: 4,
+    marginHorizontal: 4,
     minWidth: 60,
   },
   dataText: { fontSize: 14, fontWeight: "bold", color: "#1A1A1A", textAlign: "center" },
@@ -622,8 +650,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: "100%",
   },
-  timerContainer: { backgroundColor: "#3274ba", padding: 14, borderRadius: 8, width: "25%", alignItems: "center" },
-  timerText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  timerContainer: { backgroundColor: "#3274ba", padding: 8, borderRadius: 8, width: "25%", alignItems: "center" },
+  timerText: { color: "#fff", fontWeight: "bold", fontSize: 18, marginBottom: 4 },
+  timerAdjustRow: { flexDirection: "row", justifyContent: "space-between", width: "100%", paddingHorizontal: 4 },
+  timeAdjustBtn: { backgroundColor: "#1c4e85", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+  timeAdjustText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
   timerControls: { flexDirection: "row", width: "50%", justifyContent: "space-between" },
   startButton: { backgroundColor: "#f7bf0b", padding: 14, borderRadius: 8, width: "48%", alignItems: "center" },
   startButtonText: { color: "#1A1A1A", fontWeight: "bold", fontSize: 14 },
@@ -631,7 +662,7 @@ const styles = StyleSheet.create({
   pauseButtonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
   resetButton: { backgroundColor: "#8ebce6", padding: 14, borderRadius: 8, width: "48%", alignItems: "center" },
   resetButtonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
-  nextButton: { backgroundColor: "#3274ba", padding: 14, borderRadius: 8, width: "25%", alignItems: "center" },
+  nextButton: { backgroundColor: "#3274ba", padding: 14, borderRadius: 8, width: "20%", alignItems: "center" },
   nextButtonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
   inputContainer: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
   input: {
@@ -643,15 +674,28 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f8f8",
     color: "#1A1A1A",
   },
-  addButton: { marginLeft: 8, backgroundColor: "#f7bf0b", paddingVertical: 10, paddingGymPaltal: 16, borderRadius: 8 },
+  addButton: { marginLeft: 8, backgroundColor: "#f7bf0b", paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
   buttonText: { color: "#1A1A1A", fontWeight: "bold", fontSize: 16 },
-  finishButton: {
+  bottomControls: {
     position: "absolute",
     bottom: 10,
     right: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  debugToggle: {
+    backgroundColor: "#ccc",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginRight: 10,
+    elevation: 3,
+  },
+  debugToggleText: { fontSize: 16 },
+  finishButton: {
     backgroundColor: "#f7bf0b",
     paddingVertical: 14,
-    paddingGymPaltal: 18,
+    paddingHorizontal: 18,
     borderRadius: 10,
     elevation: 5,
   },

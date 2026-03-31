@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   subButton: { backgroundColor: '#3274ba', padding: 12, borderRadius: 8, marginBottom: 8, width: '23%' },
   subButtonText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
   topButtonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 10 },
-  mainButton: { backgroundColor: '#3274ba', padding: 16, borderRadius: 8, flex: 1, marginGymPaltal: 5 },
+  mainButton: { backgroundColor: '#3274ba', padding: 16, borderRadius: 8, flex: 1, marginHorizontal: 5 },
   mainButtonText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
   createWorkoutButton: { backgroundColor: '#f7bf0b', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 16 },
   createWorkoutButtonText: { color: '#1A1A1A', fontWeight: 'bold', fontSize: 18 },
