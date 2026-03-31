@@ -7,6 +7,8 @@ import {
   ImageBackground,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BlurView } from 'expo-blur';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { loginUser } from '../utils/api';
 import { Theme } from '../constants/Theme';
 import CustomButton from '../components/CustomButton';
@@ -47,34 +49,36 @@ export default function LoginScreen({ navigation, refreshAuth }) {
   return (
     <ImageBackground source={backgroundImage} style={styles.background} resizeMode="cover">
       <View style={styles.overlay}>
-        <View style={styles.contentContainer}>
-          <Text style={styles.header}>GymPal</Text>
-          <Text style={styles.subtext}>Welcome back. Ascend to new heights.</Text>
+        <Animated.View style={styles.animatedWrapper} entering={FadeInDown.duration(800).springify()}>
+          <BlurView intensity={80} tint="dark" style={styles.contentContainer}>
+            <Text style={styles.header}>GymPal</Text>
+            <Text style={styles.subtext}>Welcome back. Ascend to new heights.</Text>
 
-          <View style={styles.formContainer}>
-            <CustomInput
-              placeholder="Username"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            <View style={styles.formContainer}>
+              <CustomInput
+                placeholder="Username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
 
-            <CustomInput
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+              <CustomInput
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
 
-            <CustomButton 
-              title="Login"
-              onPress={handleLogin}
-              loading={loading}
-              style={styles.loginBtn}
-            />
-          </View>
-        </View>
+              <CustomButton 
+                title="Login"
+                onPress={handleLogin}
+                loading={loading}
+                style={styles.loginBtn}
+              />
+            </View>
+          </BlurView>
+        </Animated.View>
       </View>
     </ImageBackground>
   );
@@ -93,26 +97,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Theme.spacing.l,
   },
-  contentContainer: {
+  animatedWrapper: {
     width: '100%',
     maxWidth: 400,
+  },
+  contentContainer: {
     alignItems: 'center',
-    backgroundColor: Theme.colors.transparentLight,
-    padding: Theme.spacing.xl,
-    borderRadius: Theme.borderRadius.l,
+    padding: Theme.spacing.xxl,
+    borderRadius: Theme.borderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    borderColor: Theme.colors.glassBorder,
+    overflow: 'hidden',
   },
   header: {
     ...Theme.typography.header,
-    fontSize: 42,
-    letterSpacing: 2,
+    fontSize: 48,
+    color: Theme.colors.primary,
     marginBottom: Theme.spacing.s,
-    textTransform: 'uppercase',
+    textShadowColor: 'rgba(255,215,0,0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   subtext: {
     ...Theme.typography.body,
@@ -124,6 +128,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   loginBtn: {
-    marginTop: Theme.spacing.m,
+    marginTop: Theme.spacing.l,
   }
 });

@@ -1,5 +1,10 @@
+import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { Theme } from '../constants/Theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function CustomButton({ 
   title, 
@@ -9,44 +14,72 @@ export default function CustomButton({
   textStyle, 
   disabled = false 
 }) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, { damping: 10, stiffness: 200 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
+  };
+
   return (
-    <TouchableOpacity
-      style={[styles.button, disabled ? styles.buttonDisabled : null, style]}
+    <AnimatedTouchableOpacity
+      style={[
+        styles.container, 
+        disabled ? styles.disabled : null, 
+        style,
+        animatedStyle
+      ]}
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={disabled || loading}
-      activeOpacity={0.8}
+      activeOpacity={0.9}
     >
-      {loading ? (
-        <ActivityIndicator size="small" color="#1A1A1A" />
-      ) : (
-        <Text style={[styles.text, textStyle]}>{title}</Text>
-      )}
-    </TouchableOpacity>
+      <LinearGradient
+        colors={[Theme.colors.primary, Theme.colors.primaryDark]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradient}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color="#1A1A1A" />
+        ) : (
+          <Text style={[styles.text, textStyle]}>{title}</Text>
+        )}
+      </LinearGradient>
+    </AnimatedTouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    backgroundColor: Theme.colors.primary,
+  container: {
+    borderRadius: Theme.borderRadius.xl,
+    ...Theme.shadows.glow,
+  },
+  gradient: {
     paddingVertical: Theme.spacing.m,
-    paddingGymPaltal: Theme.spacing.l,
-    borderRadius: Theme.borderRadius.m,
+    paddingHorizontal: Theme.spacing.l,
+    borderRadius: Theme.borderRadius.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
-    shadowColor: Theme.colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
-  buttonDisabled: {
-    backgroundColor: '#6b5407',
-    opacity: 0.6,
+  disabled: {
+    opacity: 0.5,
   },
   text: {
     color: '#1A1A1A',
-    fontWeight: 'bold',
+    fontWeight: '900',
     fontSize: 16,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
 });

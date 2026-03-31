@@ -1,14 +1,17 @@
 export const Theme = {
   colors: {
-    primary: '#F6B000', // GymPal Gold
-    background: '#121212', // Deep dark background
-    surface: '#1E1E1E', // Slightly lighter dark for cards
+    primary: '#FFD700', // Epic Vibrant Gold
+    primaryDark: '#B39700',
+    background: '#050505', // Absolute dark depth
+    backgroundGradient: ['#0A0A0A', '#1C1C1C'],
+    surface: '#161616', // Sleek distinct surface
     text: '#FFFFFF',
-    textSecondary: '#A0A0A0',
-    error: '#CF6679',
-    success: '#4CAF50',
-    transparentLight: 'rgba(255, 255, 255, 0.1)',
-    transparentDark: 'rgba(0, 0, 0, 0.6)',
+    textSecondary: '#B3B3B3',
+    error: '#FF4C4C',
+    success: '#00E676',
+    transparentLight: 'rgba(255, 255, 255, 0.08)',
+    transparentDark: 'rgba(0, 0, 0, 0.75)',
+    glassBorder: 'rgba(255, 255, 255, 0.15)',
   },
   spacing: {
     s: 8,
@@ -19,28 +22,51 @@ export const Theme = {
   },
   typography: {
     header: {
-      fontSize: 28,
-      fontWeight: 'bold',
-      color: '#F6B000',
+      fontSize: 34,
+      fontWeight: '900',
+      color: '#FFFFFF',
+      letterSpacing: 1.5,
+      textTransform: 'uppercase',
     },
     title: {
-      fontSize: 22,
-      fontWeight: '600',
+      fontSize: 24,
+      fontWeight: '700',
       color: '#FFFFFF',
+      letterSpacing: 0.5,
     },
     body: {
       fontSize: 16,
       color: '#E0E0E0',
+      lineHeight: 24,
     },
     caption: {
-      fontSize: 12,
+      fontSize: 13,
       color: '#A0A0A0',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
     },
   },
   borderRadius: {
-    s: 4,
-    m: 8,
-    l: 16,
-    xl: 24,
+    s: 8,
+    m: 14,
+    l: 20,
+    xl: 30,
+    round: 9999,
   },
+  shadows: {
+    glow: {
+      shadowColor: '#FFD700',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.6,
+      shadowRadius: 15,
+      elevation: 10,
+    },
+    glass: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.5,
+      shadowRadius: 20,
+      elevation: 5,
+    }
+  }
 };
