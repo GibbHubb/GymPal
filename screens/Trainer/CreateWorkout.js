@@ -22,6 +22,7 @@ export default function CreateWorkout({ navigation }) {
   ]);
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState([]); // Store results per exercise index
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const loadExercises = async () => {
@@ -92,9 +93,19 @@ export default function CreateWorkout({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    console.log('🔥 handleSubmit() function triggered!');
-  
     try {
+      if (!workoutName.trim()) {
+        Alert.alert('Error', 'Please enter a workout name.');
+        return;
+      }
+
+      const invalidExercise = exercises.find(ex => !ex.exercise_id || !ex.repRange || !ex.sets);
+      if (invalidExercise) {
+        Alert.alert('Error', 'Please complete all exercises or remove empty ones.');
+        return;
+      }
+
+      setIsSaving(true);
       // 🔍 Check stored AsyncStorage keys
       const allKeys = await AsyncStorage.getAllKeys();
       console.log('📂 AsyncStorage Keys:', allKeys);
@@ -126,9 +137,15 @@ export default function CreateWorkout({ navigation }) {
       console.log('📤 Sending request with payload:', JSON.stringify(payload, null, 2));
       const response = await createGroupWorkout(payload);
       console.log('✅ API Response:', response);
+      
+      Alert.alert('Success', 'Workout created successfully!');
+      navigation.goBack();
   
     } catch (error) {
       console.error('🚨 Error inside handleSubmit:', error);
+      Alert.alert('Error', 'Failed to create workout. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -170,22 +187,34 @@ export default function CreateWorkout({ navigation }) {
 
       {exercises.map((exercise, index) => (
         <View key={index} style={styles.exerciseRow}>
+          <View style={styles.exerciseHeader}>
+            <Text style={styles.exerciseLabel}>Exercise {index + 1}</Text>
+            <TouchableOpacity style={styles.removeButton} onPress={() => removeExercise(index)}>
+              <Text style={styles.removeButtonText}>Remove</Text>
+            </TouchableOpacity>
+          </View>
+
           <TextInput style={styles.input} placeholder="Search Exercise" value={exercise.name} onChangeText={(text) => handleSearch(text, index)} />
           {searchResults[index] && searchResults[index].length > 0 && (
             <View style={styles.dropdownContainer}>
               {searchResults[index].map((option) => (
                 <TouchableOpacity key={option.exercise_id} style={styles.dropdownItem} onPress={() => handleSelectExercise(index, option)}>
-                  <Text>{option.name}</Text>
+                  <Text style={styles.dropdownItemText}>{option.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           )}
-          <TextInput style={styles.input} placeholder="Rep Range" value={exercise.repRange} onChangeText={(text) => updateExercise(index, 'repRange', text)} />
-          <TextInput style={styles.input} placeholder="Sets" keyboardType="numeric" value={exercise.sets} onChangeText={(text) => updateExercise(index, 'sets', text)} />
 
-          <TouchableOpacity style={styles.removeButton} onPress={() => removeExercise(index)}>
-            <Text style={styles.removeButtonText}>-</Text>
-          </TouchableOpacity>
+          <View style={styles.statsRow}>
+            <View style={styles.statInputWrapper}>
+              <Text style={styles.statLabel}>Reps</Text>
+              <TextInput style={styles.statInput} placeholder="10-12" value={exercise.repRange} onChangeText={(text) => updateExercise(index, 'repRange', text)} />
+            </View>
+            <View style={styles.statInputWrapper}>
+              <Text style={styles.statLabel}>Sets</Text>
+              <TextInput style={styles.statInput} placeholder="3" keyboardType="numeric" value={exercise.sets} onChangeText={(text) => updateExercise(index, 'sets', text)} />
+            </View>
+          </View>
         </View>
       ))}
 
@@ -193,8 +222,8 @@ export default function CreateWorkout({ navigation }) {
         <Text style={styles.buttonText}>Add Exercise</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Save Workout</Text>
+      <TouchableOpacity style={styles.saveButton} onPress={handleSubmit} disabled={isSaving}>
+        <Text style={styles.buttonText}>{isSaving ? "Saving..." : "Save Workout"}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -292,10 +321,93 @@ const styles = StyleSheet.create({
     width: '90%',
     alignSelf: 'center',
     marginTop: 20,
+    marginBottom: 30,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3, // Adds a subtle depth effect
+  },
+  exerciseRow: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  exerciseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  exerciseLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#3274ba',
+  },
+  removeButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  removeButtonText: {
+    color: '#ff4c4c',
+    fontWeight: 'bold',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  statInputWrapper: {
+    width: '48%',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  statInput: {
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#f8f8f8',
+    borderColor: '#8ebce6',
+    color: '#1A1A1A',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  dropdownContainer: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#8ebce6',
+    borderRadius: 8,
+    marginTop: -5,
+    marginBottom: 10,
+    maxHeight: 200,
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  dropdownItemText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+  },
+  addButton: {
+    backgroundColor: '#3274ba',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    width: '90%',
+    alignSelf: 'center',
+    marginTop: 10,
   },
 
   
