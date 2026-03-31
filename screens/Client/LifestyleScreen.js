@@ -152,7 +152,7 @@ const LifestyleScreen = ({ navigation }) => {
                         data={lifestyleData.slice(0, 3)}
                         keyExtractor={(item) => item.lifestyle_id?.toString() || Math.random().toString()}
                         horizontal
-                        showsGymPaltalScrollIndicator={false}
+                        showsHorizontalScrollIndicator={false}
                         inverted
                         renderItem={({ item }) => (
                             <View style={styles.submissionBox}>
@@ -208,7 +208,7 @@ const LifestyleScreen = ({ navigation }) => {
             left: 20,
             backgroundColor: '#f7bf0b',
             paddingVertical: 8,
-            paddingGymPaltal: 16,
+            paddingHorizontal: 16,
             borderRadius: 8,
             boxShadowColor: '#000',
             boxShadowOpacity: 0.1,
@@ -295,7 +295,7 @@ const LifestyleScreen = ({ navigation }) => {
             padding: 12,
             borderRadius: 8,
             width: 150, // Controls the size of each submission box
-            marginGymPaltal: 8, // Spacing between items
+            marginHorizontal: 8, // Spacing between items
             alignItems: 'center',
             borderLeftWidth: 5,
             borderLeftColor: '#3274ba',

@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     paddingVertical: Theme.spacing.s,
-    paddingGymPaltal: Theme.spacing.m,
+    paddingHorizontal: Theme.spacing.m,
     backgroundColor: Theme.colors.surface,
     borderRadius: Theme.borderRadius.m,
     borderWidth: 1,

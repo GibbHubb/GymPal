@@ -4,6 +4,9 @@ import { useState, useEffect } from "react"
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from "react-native"
 import { io } from "socket.io-client"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { Theme } from "../../constants/Theme"
+import ScreenWrapper from "../../components/ScreenWrapper"
+import CustomButton from "../../components/CustomButton"
 import { finishGroupWorkout } from "../../utils/api"
 
 let socket = null
@@ -52,6 +55,7 @@ export default function TrainerScreen({ route, navigation }) {
   const [sessionActive, setSessionActive] = useState(false)
   const [serverUrl, setServerUrl] = useState("https://gympalbackend-production.up.railway.app")
   const [debugMessages, setDebugMessages] = useState([])
+  const [showDebug, setShowDebug] = useState(false)
 
   // Add debug message helper
   const addDebugMessage = (message) => {
@@ -186,10 +190,13 @@ export default function TrainerScreen({ route, navigation }) {
     if (workoutDetails) setWorkout(workoutDetails)
   }, [workoutDetails])
 
-  // This effect syncs ALL workout data whenever it changes
+  // This effect syncs ALL workout data whenever it changes (debounced)
   useEffect(() => {
     if (socketConnected) {
-      broadcastWorkoutData()
+      const handler = setTimeout(() => {
+        broadcastWorkoutData()
+      }, 500)
+      return () => clearTimeout(handler)
     }
   }, [workout, socketConnected])
 
@@ -369,6 +376,14 @@ export default function TrainerScreen({ route, navigation }) {
     emitSyncData(3000) // Immediately emit with reset timer
   }
 
+  const handleAddTime = (amount) => {
+    setTimer((prev) => {
+      const newTime = Math.max(0, prev + amount)
+      emitSyncData(newTime)
+      return newTime
+    })
+  }
+
   const handleFinishWorkout = async () => {
     if (!userId) {
       Alert.alert("❌ Error", "User ID not found. Please log in again.")
@@ -389,286 +404,322 @@ export default function TrainerScreen({ route, navigation }) {
   }
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.backButtonText}>← Back</Text>
-      </TouchableOpacity>
-
-      {/* Session name input */}
-      <View style={styles.sessionContainer}>
-        <Text style={styles.sessionLabel}>Session Name:</Text>
-        <TextInput
-          style={styles.sessionInput}
-          value={sessionName}
-          onChangeText={setSessionName}
-          placeholder="Enter session name"
-          placeholderTextColor="#555"
-        />
-        <TouchableOpacity
-          style={[
-            styles.sessionStatusButton,
-            sessionActive ? styles.sessionActiveButton : styles.sessionInactiveButton,
-          ]}
-          onPress={registerAsTrainer}
-        >
-          <Text style={styles.sessionStatusText}>{sessionActive ? "Broadcasting" : "Start Broadcasting"}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.header}>{workout?.name || "Trainer View"}</Text>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter participant name"
-          placeholderTextColor="#555"
-          value={newParticipant}
-          onChangeText={setNewParticipant}
-        />
-        <TouchableOpacity style={styles.addButton} onPress={handleAddParticipant}>
-          <Text style={styles.buttonText}>Add</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView horizontal>
-        <View>
-          <View style={styles.headerRow}>
-            <View style={styles.firstColumn} />
-            {workout.participants.map((p, i) => {
-              const groupIndex = participantToGroupMap[p.user_id]
-              return (
-                <View
-                  key={i}
-                  style={[
-                    styles.headerCellContainer,
-                    { backgroundColor: groupColors[groupIndex % groupColors.length] },
-                  ]}
-                >
-                  <Text style={styles.headerCell}>{p.participant_name}</Text>
-                </View>
-              )
-            })}
-          </View>
-
-          <View style={styles.subHeaderRow}>
-            <View style={styles.firstColumn} />
-            {workout.participants.map((_, index) => (
-              <View key={index} style={styles.subHeaderContainer}>
-                <Text style={styles.subHeaderText}>Weight</Text>
-                <Text style={styles.subHeaderText}>Reps</Text>
-              </View>
-            ))}
-          </View>
-
-          <ScrollView>
-            {workout.exercises.map((exercise, exIdx) => (
-              <View key={exIdx} style={styles.row}>
-                <View style={styles.exerciseCell}>
-                  <Text style={styles.exerciseText}>{exercise.exercise_name}</Text>
-                </View>
-                {workout.participants.map((participant, idx) => {
-                  const groupIndex = participantToGroupMap[participant.user_id]
-                  const isCurrent = exIdx === getStartingExercise(participant.user_id)
-                  return (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.inputRow,
-                        { backgroundColor: isCurrent ? groupColors[groupIndex % groupColors.length] : "#EAEAEA" },
-                      ]}
-                    >
-                      <View style={styles.dataBox}>
-                        <TextInput
-                          style={styles.dataText}
-                          value={String(participant.weights?.[exercise.exercise_id] || "")}
-                          onChangeText={(text) =>
-                            handleUpdateValue(participant.user_id, exercise.exercise_id, "weights", text)
-                          }
-                          keyboardType="numeric"
-                          textAlign="center"
-                          placeholder="0"
-                        />
-                      </View>
-                      <View style={styles.dataBox}>
-                        <TextInput
-                          style={styles.dataText}
-                          value={String(participant.reps?.[exercise.exercise_id] || "")}
-                          onChangeText={(text) =>
-                            handleUpdateValue(participant.user_id, exercise.exercise_id, "reps", text)
-                          }
-                          keyboardType="numeric"
-                          textAlign="center"
-                          placeholder="0"
-                        />
-                      </View>
-                    </View>
-                  )
-                })}
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <View style={styles.timerContainer}>
-          <Text style={styles.timerText}>{formatTime(timer)}</Text>
-        </View>
-        <View style={styles.timerControls}>
-          {!timerRunning ? (
-            <TouchableOpacity style={styles.startButton} onPress={handleStartTimer}>
-              <Text style={styles.startButtonText}>Start Timer</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.pauseButton} onPress={handlePauseTimer}>
-              <Text style={styles.pauseButtonText}>Pause</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.resetButton} onPress={handleResetTimer}>
-            <Text style={styles.resetButtonText}>Reset</Text>
+    <ScreenWrapper scrollable={false}>
+      <View style={styles.container}>
+        <View style={styles.topLogoRow}>
+          <Image source={require("../../assets/GymPal.png")} style={styles.logo} />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>← Back</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.nextButton} onPress={handleNextExercise}>
-          <Text style={styles.nextButtonText}>Next</Text>
-        </TouchableOpacity>
+
+        {/* Session name input */}
+        <View style={styles.sessionContainer}>
+          <Text style={styles.sessionLabel}>Session:</Text>
+          <TextInput
+            style={styles.sessionInput}
+            value={sessionName}
+            onChangeText={setSessionName}
+            placeholder="Name..."
+            placeholderTextColor="#888"
+          />
+          <TouchableOpacity
+            style={[
+              styles.sessionStatusButton,
+              sessionActive ? styles.sessionActiveButton : styles.sessionInactiveButton,
+            ]}
+            onPress={registerAsTrainer}
+          >
+            <Text style={styles.sessionStatusText}>{sessionActive ? "Live" : "Go Live"}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.header}>{workout?.name || "Trainer View"}</Text>
+
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Add Participant..."
+            placeholderTextColor="#888"
+            value={newParticipant}
+            onChangeText={setNewParticipant}
+          />
+          <TouchableOpacity style={styles.addButton} onPress={handleAddParticipant}>
+            <Text style={styles.buttonText}>Add</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View>
+            <View style={styles.headerRow}>
+              <View style={styles.firstColumn} />
+              {workout.participants.map((p, i) => {
+                const groupIndex = participantToGroupMap[p.user_id]
+                return (
+                  <View
+                    key={i}
+                    style={[
+                      styles.headerCellContainer,
+                      { backgroundColor: groupColors[groupIndex % groupColors.length] },
+                    ]}
+                  >
+                    <Text style={styles.headerCell}>{p.participant_name}</Text>
+                  </View>
+                )
+              })}
+            </View>
+
+            <View style={styles.subHeaderRow}>
+              <View style={styles.firstColumn} />
+              {workout.participants.map((_, index) => (
+                <View key={index} style={styles.subHeaderContainer}>
+                  <Text style={styles.subHeaderText}>WT</Text>
+                  <Text style={styles.subHeaderText}>RP</Text>
+                </View>
+              ))}
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {workout.exercises.map((exercise, exIdx) => (
+                <View key={exIdx} style={styles.row}>
+                  <View style={styles.exerciseCell}>
+                    <Text style={styles.exerciseText}>{exercise.exercise_name}</Text>
+                  </View>
+                  {workout.participants.map((participant, idx) => {
+                    const groupIndex = participantToGroupMap[participant.user_id]
+                    const isCurrent = exIdx === getStartingExercise(participant.user_id)
+                    return (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.inputRow,
+                          { backgroundColor: isCurrent ? groupColors[groupIndex % groupColors.length] + '33' : "transparent" },
+                        ]}
+                      >
+                        <View style={styles.dataBox}>
+                          <TextInput
+                            style={styles.dataText}
+                            value={String(participant.weights?.[exercise.exercise_id] || "")}
+                            onChangeText={(text) =>
+                              handleUpdateValue(participant.user_id, exercise.exercise_id, "weights", text)
+                            }
+                            keyboardType="numeric"
+                            textAlign="center"
+                            placeholder="0"
+                            placeholderTextColor="#555"
+                          />
+                        </View>
+                        <View style={styles.dataBox}>
+                          <TextInput
+                            style={styles.dataText}
+                            value={String(participant.reps?.[exercise.exercise_id] || "")}
+                            onChangeText={(text) =>
+                              handleUpdateValue(participant.user_id, exercise.exercise_id, "reps", text)
+                            }
+                            keyboardType="numeric"
+                            textAlign="center"
+                            placeholder="0"
+                            placeholderTextColor="#555"
+                          />
+                        </View>
+                      </View>
+                    )
+                  })}
+                </View>
+              ))}
+              <View style={{ height: 100 }} />
+            </ScrollView>
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <View style={styles.timerContainer}>
+            <Text style={styles.timerText}>{formatTime(timer)}</Text>
+            <View style={styles.timerAdjustRow}>
+              <TouchableOpacity onPress={() => handleAddTime(-60)} style={styles.timeAdjustBtn}>
+                <Text style={styles.timeAdjustText}>-1m</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleAddTime(60)} style={styles.timeAdjustBtn}>
+                <Text style={styles.timeAdjustText}>+1m</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.timerControls}>
+            {!timerRunning ? (
+              <TouchableOpacity style={styles.startButton} onPress={handleStartTimer}>
+                <Text style={styles.startButtonText}>Start</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.pauseButton} onPress={handlePauseTimer}>
+                <Text style={styles.pauseButtonText}>Pause</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.resetButton} onPress={handleResetTimer}>
+              <Text style={styles.resetButtonText}>Reset</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.nextButton} onPress={handleNextExercise}>
+            <Text style={styles.nextButtonText}>Next</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.bottomControls}>
+          <TouchableOpacity style={styles.debugToggle} onPress={() => setShowDebug(!showDebug)}>
+            <Text style={styles.debugToggleText}>🐛</Text>
+          </TouchableOpacity>
+          
+          <CustomButton 
+            title={isFinishing ? "Saving..." : "Finish Workout"} 
+            onPress={handleFinishWorkout} 
+            disabled={isFinishing}
+            style={styles.finishBtnSize}
+          />
+        </View>
+
+        {/* Debug messages */}
+        {showDebug && (
+          <ScrollView style={styles.debugContainer}>
+            {debugMessages.map((msg, idx) => (
+              <Text key={idx} style={styles.debugText}>
+                {msg}
+              </Text>
+            ))}
+          </ScrollView>
+        )}
       </View>
-
-      <TouchableOpacity style={styles.finishButton} onPress={handleFinishWorkout} disabled={isFinishing}>
-        <Text style={styles.finishButtonText}>{isFinishing ? "Saving..." : "Finish Workout"}</Text>
-      </TouchableOpacity>
-
-      {/* Debug messages */}
-      <ScrollView style={styles.debugContainer}>
-        {debugMessages.map((msg, idx) => (
-          <Text key={idx} style={styles.debugText}>
-            {msg}
-          </Text>
-        ))}
-      </ScrollView>
-    </View>
+    </ScreenWrapper>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#FFFFFF" },
-  logo: { width: 150, height: 80, resizeMode: "contain", marginBottom: 10, alignSelf: "center" },
-  header: { fontSize: 24, fontWeight: "bold", textAlign: "center", color: "#3274ba", marginBottom: 16 },
-  backButton: { marginBottom: 10 },
-  backButtonText: { color: "#3274ba", fontSize: 16 },
+  container: { flex: 1, paddingHorizontal: 16, backgroundColor: Theme.colors.background },
+  topLogoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15, marginTop: 10 },
+  logo: { width: 120, height: 60, resizeMode: "contain" },
+  backBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: Theme.colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.glassBorder },
+  backBtnText: { color: "#fff", fontSize: 13, fontWeight: '700' },
+  header: { ...Theme.typography.title, textAlign: "center", color: Theme.colors.primary, marginBottom: 15 },
   sessionContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
-    backgroundColor: "#f5f5f5",
-    padding: 8,
-    borderRadius: 4,
+    marginBottom: 15,
+    backgroundColor: Theme.colors.surface,
+    padding: 10,
+    borderRadius: Theme.borderRadius.m,
+    borderWidth: 1,
+    borderColor: Theme.colors.glassBorder,
   },
-  sessionLabel: { fontSize: 14, fontWeight: "bold", color: "#333", marginRight: 8 },
+  sessionLabel: { ...Theme.typography.caption, color: Theme.colors.primary, marginRight: 10 },
   sessionInput: {
     flex: 1,
-    padding: 6,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 4,
-    backgroundColor: "#fff",
-    color: "#333",
+    padding: 8,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 6,
+    color: "#fff",
     fontSize: 14,
   },
   sessionStatusButton: {
-    marginLeft: 8,
-    paddingGymPaltal: 8,
+    marginLeft: 10,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 4,
+    borderRadius: 6,
   },
-  sessionActiveButton: {
-    backgroundColor: "#d4edda",
-  },
-  sessionInactiveButton: {
-    backgroundColor: "#f8d7da",
-  },
-  sessionStatusText: {
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  headerRow: { flexDirection: "row", paddingVertical: 8 },
-  firstColumn: { width: 120 },
-  headerCellContainer: { flex: 1, alignItems: "center", justifyContent: "center", padding: 12 },
-  headerCell: { fontWeight: "bold", fontSize: 16, color: "#fff", textAlign: "center" },
-  subHeaderRow: { flexDirection: "row", backgroundColor: "#d4e5f7", paddingVertical: 5 },
-  subHeaderContainer: { flexDirection: "row", justifyContent: "space-evenly", flex: 1 },
-  subHeaderText: { fontSize: 14, fontWeight: "bold", color: "#1A1A1A", flex: 1, textAlign: "center" },
-  row: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#ddd" },
-  exerciseCell: { width: 120, paddingVertical: 12, paddingGymPaltal: 10, backgroundColor: "#8ebce6" },
-  exerciseText: { fontSize: 16, fontWeight: "bold", color: "#fff", textAlign: "center" },
-  inputRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", padding: 6 },
+  sessionActiveButton: { backgroundColor: Theme.colors.success },
+  sessionInactiveButton: { backgroundColor: Theme.colors.primary },
+  sessionStatusText: { fontSize: 11, fontWeight: "900", color: "#000", textTransform: 'uppercase' },
+  headerRow: { flexDirection: "row", marginBottom: 5 },
+  firstColumn: { width: 100 },
+  headerCellContainer: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 10, width: 120, borderRadius: 4, marginHorizontal: 2 },
+  headerCell: { fontWeight: "900", fontSize: 12, color: "#1A1A1A", textAlign: "center", textTransform: 'uppercase' },
+  subHeaderRow: { flexDirection: "row", marginBottom: 5 },
+  subHeaderContainer: { flexDirection: "row", justifyContent: "space-evenly", width: 120, marginHorizontal: 2 },
+  subHeaderText: { fontSize: 10, fontWeight: "bold", color: Theme.colors.textSecondary, width: 50, textAlign: "center" },
+  row: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.05)" },
+  exerciseCell: { width: 100, paddingVertical: 15, paddingRight: 10 },
+  exerciseText: { fontSize: 14, fontWeight: "700", color: Theme.colors.text },
+  inputRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 5, width: 120, marginHorizontal: 2 },
   dataBox: {
-    backgroundColor: "#f8f8f8",
-    paddingVertical: 6,
-    paddingGymPaltal: 12,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    paddingVertical: 8,
     borderWidth: 1,
-    borderColor: "#8ebce6",
+    borderColor: "rgba(255,255,255,0.1)",
     borderRadius: 8,
-    marginGymPaltal: 4,
-    minWidth: 60,
+    marginHorizontal: 2,
+    width: 50,
   },
-  dataText: { fontSize: 14, fontWeight: "bold", color: "#1A1A1A", textAlign: "center" },
+  dataText: { fontSize: 14, fontWeight: "900", color: "#fff", textAlign: "center" },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
-    backgroundColor: "#fff",
+    paddingVertical: 15,
+    backgroundColor: Theme.colors.background,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.1)",
     position: "absolute",
     bottom: 0,
-    width: "100%",
+    width: "105%", // Adjust for container padding
+    left: 0,
+    paddingHorizontal: 16,
   },
-  timerContainer: { backgroundColor: "#3274ba", padding: 14, borderRadius: 8, width: "25%", alignItems: "center" },
-  timerText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  timerContainer: { backgroundColor: Theme.colors.surface, padding: 8, borderRadius: Theme.borderRadius.m, width: "25%", alignItems: "center", borderWidth: 1, borderColor: Theme.colors.primary },
+  timerText: { color: Theme.colors.primary, fontWeight: "900", fontSize: 18 },
+  timerAdjustRow: { flexDirection: "row", justifyContent: "space-between", width: "100%", marginTop: 4 },
+  timeAdjustBtn: { backgroundColor: "rgba(255,255,255,0.05)", paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
+  timeAdjustText: { color: "#fff", fontSize: 10, fontWeight: "bold" },
   timerControls: { flexDirection: "row", width: "50%", justifyContent: "space-between" },
-  startButton: { backgroundColor: "#f7bf0b", padding: 14, borderRadius: 8, width: "48%", alignItems: "center" },
-  startButtonText: { color: "#1A1A1A", fontWeight: "bold", fontSize: 14 },
-  pauseButton: { backgroundColor: "#fc6e4c", padding: 14, borderRadius: 8, width: "48%", alignItems: "center" },
-  pauseButtonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
-  resetButton: { backgroundColor: "#8ebce6", padding: 14, borderRadius: 8, width: "48%", alignItems: "center" },
-  resetButtonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
-  nextButton: { backgroundColor: "#3274ba", padding: 14, borderRadius: 8, width: "25%", alignItems: "center" },
-  nextButtonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
-  inputContainer: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
+  startButton: { backgroundColor: Theme.colors.primary, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center" },
+  startButtonText: { color: "#000", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
+  pauseButton: { backgroundColor: Theme.colors.error, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center" },
+  pauseButtonText: { color: "#fff", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
+  resetButton: { backgroundColor: Theme.colors.surface, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center", borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  resetButtonText: { color: "#fff", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
+  nextButton: { backgroundColor: Theme.colors.primary, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "20%", alignItems: "center" },
+  nextButtonText: { color: "#000", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
+  inputContainer: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
   input: {
     flex: 1,
     padding: 10,
     borderWidth: 1,
-    borderColor: "#8ebce6",
+    borderColor: Theme.colors.glassBorder,
     borderRadius: 8,
-    backgroundColor: "#f8f8f8",
-    color: "#1A1A1A",
+    backgroundColor: Theme.colors.surface,
+    color: "#fff",
   },
-  addButton: { marginLeft: 8, backgroundColor: "#f7bf0b", paddingVertical: 10, paddingGymPaltal: 16, borderRadius: 8 },
-  buttonText: { color: "#1A1A1A", fontWeight: "bold", fontSize: 16 },
-  finishButton: {
+  addButton: { marginLeft: 10, backgroundColor: Theme.colors.primary, paddingVertical: 10, paddingHorizontal: 15, borderRadius: 8 },
+  buttonText: { color: "#000", fontWeight: "900", fontSize: 14 },
+  bottomControls: {
     position: "absolute",
-    bottom: 10,
-    right: 10,
-    backgroundColor: "#f7bf0b",
-    paddingVertical: 14,
-    paddingGymPaltal: 18,
-    borderRadius: 10,
-    elevation: 5,
+    bottom: 90,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
   },
-  finishButtonText: { color: "#1A1A1A", fontWeight: "bold", fontSize: 16 },
+  debugToggle: {
+    backgroundColor: Theme.colors.surface,
+    padding: 12,
+    borderRadius: Theme.borderRadius.round,
+    marginRight: 10,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: Theme.colors.glassBorder,
+  },
+  debugToggleText: { fontSize: 16 },
+  finishBtnSize: { width: 160 },
   debugContainer: {
     position: "absolute",
-    bottom: 70,
-    left: 10,
-    right: 10,
-    maxHeight: 100,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    top: 60,
+    right: 20,
+    maxHeight: 150,
+    width: 250,
+    backgroundColor: "rgba(0,0,0,0.9)",
     borderRadius: 8,
-    padding: 5,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: Theme.colors.primary,
   },
   debugText: {
-    fontSize: 10,
-    color: "#fff",
+    fontSize: 9,
+    color: Theme.colors.primary,
     marginBottom: 2,
   },
 })
