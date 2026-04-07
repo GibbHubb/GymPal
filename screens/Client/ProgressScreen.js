@@ -1,23 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Alert, StyleSheet, Image, Pressable, Dimensions } from 'react-native';
+import { View, Text, Alert, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { fetchProgressData } from '../../utils/api';
-import { LogBox } from 'react-native';
-
-
-// ✅ Suppress unnecessary warnings
-LogBox.ignoreLogs([
-  "Unknown event handler property",
-  "React does not recognize the `withDots` prop",
-  "TouchableMixin is deprecated. Please use Pressable",
-]);
+import { Theme } from '../../constants/Theme';
+import ScreenWrapper from '../../components/ScreenWrapper';
+import CustomHeader from '../../components/CustomHeader';
+import GlassCard from '../../components/GlassCard';
 
 const ProgressScreen = () => {
   const navigation = useNavigation();
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [loading, setLoading] = useState(false);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [{ data: [] }],
@@ -43,6 +39,7 @@ const ProgressScreen = () => {
     if (!category) return;
 
     try {
+      setLoading(true);
       const user_id = await AsyncStorage.getItem('user_id');
       if (!user_id) {
         Alert.alert('Error', 'User ID not found');
@@ -51,152 +48,170 @@ const ProgressScreen = () => {
 
       let data = await fetchProgressData(user_id, category);
 
-      // ✅ Ensure data is an array and convert all weights to numbers
       if (!Array.isArray(data) || data.length === 0) {
         setChartData({
           labels: ['No Data'],
-          datasets: [{ data: [0] }], // ✅ Prevents crash
+          datasets: [{ data: [0] }],
         });
         return;
       }
 
+      // Limit to last 7 entries for better chart readability
+      const recentData = data.slice(-7);
+
       setChartData({
-        labels: data.map((entry) => new Date(entry.date).toLocaleDateString()),
-        datasets: [{ data: data.map((entry) => Number(entry.weight) || 0) }], // ✅ Convert to numbers, fallback to 0
+        labels: recentData.map((entry) => new Date(entry.date).toLocaleDateString([], { month: 'short', day: 'numeric' })),
+        datasets: [{ data: recentData.map((entry) => Number(entry.weight) || 0) }],
       });
     } catch (error) {
       console.error('Error fetching progress data:', error);
       Alert.alert('Error', `Failed to fetch progress data for ${category}.`);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Back Button */}
-      <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.backButtonText}>← Back</Text>
-      </Pressable>
+    <ScreenWrapper>
+      <CustomHeader title="Progress Tracker" />
+      <View style={styles.container}>
+        <GlassCard style={styles.pickerCard}>
+          <Text style={styles.label}>Select Category</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={selectedCategory}
+              onValueChange={(itemValue) => setSelectedCategory(itemValue)}
+              style={styles.picker}
+              dropdownIconColor={Theme.colors.primary}
+            >
+              <Picker.Item label="Choose an exercise..." value="" color={Theme.colors.textSecondary} />
+              {exerciseCategories.map((exercise, index) => (
+                <Picker.Item key={index} label={exercise.label} value={exercise.value} color="#fff" />
+              ))}
+            </Picker>
+          </View>
+        </GlassCard>
 
-      {/* GymPal Logo */}
-      <Text style={styles.title}>Progress Tracker</Text>
-
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={selectedCategory}
-          onValueChange={(itemValue) => setSelectedCategory(itemValue)}
-          style={styles.picker}
-        >
-          <Picker.Item label="Select an Exercise" value="" enabled={false} />
-          {exerciseCategories.map((exercise, index) => (
-            <Picker.Item key={index} label={exercise.label} value={exercise.value} />
-          ))}
-        </Picker>
+        {loading ? (
+          <View style={styles.centerContent}>
+            <ActivityIndicator size="large" color={Theme.colors.primary} />
+          </View>
+        ) : chartData.labels.length > 0 && chartData.labels[0] !== 'No Data' ? (
+          <View style={styles.chartSection}>
+            <Text style={styles.chartTitle}>
+              {exerciseCategories.find(c => c.value === selectedCategory)?.label} Progress
+            </Text>
+            <GlassCard style={styles.chartContainer}>
+              <LineChart
+                data={chartData}
+                width={Dimensions.get('window').width - 60}
+                height={260}
+                chartConfig={{
+                  backgroundColor: Theme.colors.surface,
+                  backgroundGradientFrom: Theme.colors.surface,
+                  backgroundGradientTo: Theme.colors.surface,
+                  decimalPlaces: 1,
+                  color: (opacity = 1) => `rgba(255, 215, 0, ${opacity})`, // primary gold
+                  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  style: { borderRadius: 16 },
+                  propsForDots: {
+                    r: '5',
+                    strokeWidth: '2',
+                    stroke: Theme.colors.primary,
+                  },
+                }}
+                bezier
+                style={styles.chart}
+              />
+            </GlassCard>
+            <View style={styles.infoBox}>
+               <Text style={styles.infoText}>Consistent progress leads to epic results. Keep pushing!</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.centerContent}>
+             <Text style={styles.noDataText}> 
+              {selectedCategory ? "No data recorded for this category yet." : "Select a category above to view your progress."}
+             </Text>
+          </View>
+        )}
       </View>
-
-      {chartData.labels.length > 0 ? (
-        <View style={styles.chartContainer}>
-          <LineChart
-            data={chartData}
-            width={Dimensions.get('window').width * 0.9} // ✅ Graph takes up 90% width
-            height={Dimensions.get('window').height * 0.5} // ✅ Graph takes up 50% height
-            chartConfig={{
-              backgroundColor: '#FFFFFF',
-              backgroundGradientFrom: '#FFFFFF',
-              backgroundGradientTo: '#FFFFFF',
-              decimalPlaces: 1,
-              color: (opacity = 1) => `rgba(50, 116, 186, ${opacity})`, // ✅ GymPal Blue
-              labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-              style: { borderRadius: 10 },
-              propsForDots: {
-                r: '6',
-                strokeWidth: '2',
-                stroke: '#3274ba',
-              },
-            }}
-            bezier
-            style={styles.chart}
-          />
-        </View>
-      ) : (
-        <Text style={styles.noDataText}>Select an exercise to view progress.</Text>
-      )}
-    </View>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    padding: Theme.spacing.m,
     flex: 1,
-    padding: 20,
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
   },
-  logo: {
-    width: 150,
-    height: 80,
-    resizeMode: 'contain',
-    marginBottom: 20,
+  pickerCard: {
+    marginBottom: Theme.spacing.l,
   },
-  backButton: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    backgroundColor: '#f7bf0b',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+  label: {
+    ...Theme.typography.caption,
+    color: Theme.colors.primary,
+    marginBottom: Theme.spacing.s,
+    fontWeight: '900',
   },
-  backButtonText: {
-    color: '#1A1A1A',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#3274ba',
-    marginBottom: 20,
-  },
-  pickerContainer: {
-    width: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 8,
+  pickerWrapper: {
+    backgroundColor: Theme.colors.transparentLight,
+    borderRadius: Theme.borderRadius.m,
     borderWidth: 1,
-    borderColor: '#8ebce6',
+    borderColor: Theme.colors.glassBorder,
     overflow: 'hidden',
-    marginBottom: 20,
   },
   picker: {
-    height: 50,
-    width: '100%',
-    color: '#000',
+    height: 55,
+    color: Theme.colors.text,
   },
-  chartContainer: {
-    width: '90%',
-    height: '70%', // ✅ Graph takes up 70% of screen height
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 10,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    justifyContent: 'center', // ✅ Centering the chart
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  chartSection: {
     alignItems: 'center',
   },
+  chartTitle: {
+    ...Theme.typography.title,
+    color: Theme.colors.text,
+    fontSize: 18,
+    marginBottom: Theme.spacing.m,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  chartContainer: {
+    padding: 0,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Theme.spacing.m,
+  },
   chart: {
-    marginVertical: 10,
-    borderRadius: 10,
+    borderRadius: 16,
   },
   noDataText: {
+    color: Theme.colors.textSecondary,
     fontSize: 16,
-    color: '#555',
-    marginTop: 20,
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
+  infoBox: {
+    marginTop: Theme.spacing.xl,
+    padding: Theme.spacing.m,
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+    borderRadius: Theme.borderRadius.m,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.2)',
+  },
+  infoText: {
+    color: Theme.colors.primary,
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  }
 });
 
 export default ProgressScreen;

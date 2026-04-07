@@ -8,11 +8,16 @@ import {
     TouchableOpacity,
     Image,
     ScrollView,
-    TextInput
+    TextInput,
+    ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchLifestyleData, submitLifestyleData } from '../../utils/api';
-
+import { Theme } from '../../constants/Theme';
+import ScreenWrapper from '../../components/ScreenWrapper';
+import CustomHeader from '../../components/CustomHeader';
+import GlassCard from '../../components/GlassCard';
+import CustomButton from '../../components/CustomButton';
 
 const LifestyleScreen = ({ navigation }) => {
     const [stress, setStress] = useState('');
@@ -22,6 +27,7 @@ const LifestyleScreen = ({ navigation }) => {
     const [notes, setNotes] = useState('');
     const [lifestyleData, setLifestyleData] = useState([]);
     const [alreadySubmittedToday, setAlreadySubmittedToday] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchLifestyleDataHandler();
@@ -29,13 +35,13 @@ const LifestyleScreen = ({ navigation }) => {
 
     const fetchLifestyleDataHandler = async () => {
         try {
+            setLoading(true);
             const data = await fetchLifestyleData();
             if (Array.isArray(data)) {
                 setLifestyleData(data);
 
-                // 🔍 Check if the user has already submitted today
-                const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-                const latestEntry = data[0]; // Most recent submission
+                const today = new Date().toISOString().split('T')[0];
+                const latestEntry = data[0];
 
                 if (latestEntry && latestEntry.date.startsWith(today)) {
                     setAlreadySubmittedToday(true);
@@ -43,11 +49,12 @@ const LifestyleScreen = ({ navigation }) => {
                     setAlreadySubmittedToday(false);
                 }
             } else {
-                console.error('Unexpected API response:', data);
                 setLifestyleData([]);
             }
         } catch (error) {
             Alert.alert('Error', error.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -76,7 +83,6 @@ const LifestyleScreen = ({ navigation }) => {
             Alert.alert('❌ Error', error.message || 'Something went wrong while submitting.');
         }
     };
-    
 
     const renderSelector = (label, value, setValue) => (
         <View style={styles.selectorContainer}>
@@ -90,236 +96,200 @@ const LifestyleScreen = ({ navigation }) => {
                             value == num && styles.selectedButton
                         ]}
                         onPress={() => setValue(num)}
-                        disabled={alreadySubmittedToday} // Disable if already submitted
+                        disabled={alreadySubmittedToday}
                     >
-                        <Text style={styles.selectorText}>{num}</Text>
+                        <Text style={[styles.selectorText, value == num && styles.selectedSelectorText]}>{num}</Text>
                     </TouchableOpacity>
                 ))}
             </View>
         </View>
     );
 
+    if (loading) {
+        return (
+            <ScreenWrapper>
+                <CustomHeader title="Lifestyle Check-in" />
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Theme.colors.primary} />
+                </View>
+            </ScreenWrapper>
+        );
+    }
+
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            {/* Back Button */}
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
+        <ScreenWrapper scrollable={true}>
+            <CustomHeader title="Lifestyle Check-in" />
+            <View style={styles.container}>
+                <GlassCard style={styles.formCard}>
+                    {renderSelector("Stress", stress, setStress)}
+                    {renderSelector("Sleep", sleep, setSleep)}
+                    {renderSelector("Soreness", soreness, setSoreness)}
 
-            {/* GymPal Logo */}
-            <Text style={styles.title}>Lifestyle Check-in</Text>
-
-            {/* Selectors for Stress, Sleep, and Soreness */}
-            {renderSelector("Stress", stress, setStress)}
-            {renderSelector("Sleep", sleep, setSleep)}
-            {renderSelector("Soreness", soreness, setSoreness)}
-
-            <TextInput
-                style={styles.input}
-                placeholder="Weight"
-                placeholderTextColor="#555"
-                value={weight}
-                onChangeText={setWeight}
-                keyboardType="numeric"
-                editable={!alreadySubmittedToday} // Disable if already submitted
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Notes to Trainer (Optional)"
-                placeholderTextColor="#555"
-                value={notes}
-                onChangeText={setNotes}
-                editable={!alreadySubmittedToday} // Disable if already submitted
-            />
-
-            {/* Submit Button */}
-            <TouchableOpacity 
-                style={[styles.button, alreadySubmittedToday && styles.disabledButton]} 
-                onPress={handleSubmitLifestyleData}
-                disabled={alreadySubmittedToday}  
-            >
-                <Text style={styles.buttonText}>
-                    {alreadySubmittedToday ? 'Already Submitted Today ✅' : 'Submit'}
-                </Text>
-            </TouchableOpacity>
-
-            <Text style={styles.subtitle}>Last 3 Submissions</Text>
-
-            {/* Display Previous Entries (Last 3 Only) */}
-            <View style={styles.submissionsContainer}>
-                {lifestyleData.length > 0 ? (
-                    <FlatList
-                        data={lifestyleData.slice(0, 3)}
-                        keyExtractor={(item) => item.lifestyle_id?.toString() || Math.random().toString()}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        inverted
-                        renderItem={({ item }) => (
-                            <View style={styles.submissionBox}>
-                                <Text style={styles.submissionDate}>{new Date(item.date).toLocaleDateString()}</Text>
-                                <Text style={styles.submissionText}>💆 Stress: {item.stress}</Text>
-                                <Text style={styles.submissionText}>😴 Sleep: {item.sleep}</Text>
-                                <Text style={styles.submissionText}>💪 Soreness: {item.soreness}</Text>
-                                <Text style={styles.submissionText}>⚖️ Weight: {item.weight} kg</Text>
-                                {item.notes_to_trainer ? <Text style={styles.submissionText}>📝 {item.notes_to_trainer}</Text> : null}
-                            </View>
-                        )}
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Weight (kg)"
+                        placeholderTextColor={Theme.colors.textSecondary}
+                        value={weight}
+                        onChangeText={setWeight}
+                        keyboardType="numeric"
+                        editable={!alreadySubmittedToday}
                     />
-                ) : (
-                    <Text style={styles.noEntriesText}>No submissions yet.</Text>
-                )}
+                    <TextInput
+                        style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                        placeholder="Notes to Trainer (Optional)"
+                        placeholderTextColor={Theme.colors.textSecondary}
+                        value={notes}
+                        onChangeText={setNotes}
+                        multiline
+                        editable={!alreadySubmittedToday}
+                    />
+
+                    <CustomButton 
+                        title={alreadySubmittedToday ? 'Already Submitted Today ✅' : 'Submit Check-in'} 
+                        onPress={handleSubmitLifestyleData}
+                        disabled={alreadySubmittedToday}
+                        style={[styles.submitButton, alreadySubmittedToday && styles.disabledButton]}
+                    />
+                </GlassCard>
+
+                <Text style={styles.subtitle}>Recent Submissions</Text>
+
+                <View style={styles.submissionsContainer}>
+                    {lifestyleData.length > 0 ? (
+                        <FlatList
+                            data={lifestyleData.slice(0, 5)}
+                            keyExtractor={(item) => item.lifestyle_id?.toString() || Math.random().toString()}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            renderItem={({ item }) => (
+                                <GlassCard style={styles.submissionBox}>
+                                    <Text style={styles.submissionDate}>{new Date(item.date).toLocaleDateString()}</Text>
+                                    <View style={styles.submissionStats}>
+                                        <Text style={styles.submissionText}>💆 Stress: {item.stress}</Text>
+                                        <Text style={styles.submissionText}>😴 Sleep: {item.sleep}</Text>
+                                        <Text style={styles.submissionText}>💪 Soreness: {item.soreness}</Text>
+                                        <Text style={styles.submissionText}>⚖️ {item.weight} kg</Text>
+                                    </View>
+                                </GlassCard>
+                            )}
+                        />
+                    ) : (
+                        <Text style={styles.noEntriesText}>No submissions yet.</Text>
+                    )}
+                </View>
             </View>
-        </ScrollView>
+        </ScreenWrapper>
     );
 };
 
-    const styles = StyleSheet.create({
-        container: {
-            flexGrow: 1,
-            padding: 20,
-            alignItems: 'center',
-            backgroundColor: '#FFFFFF',
-        },
-        logo: {
-            width: 150,
-            height: 80,
-            resizeMode: 'contain',
-            marginBottom: 20,
-        },
-        title: {
-            fontSize: 26,
-            fontWeight: 'bold',
-            color: '#3274ba',
-            marginBottom: 20,
-        },
-        input: {
-            borderWidth: 1,
-            padding: 12,
-            marginVertical: 8,
-            borderRadius: 8,
-            width: '100%',
-            backgroundColor: '#f8f8f8',
-            borderColor: '#8ebce6',
-            color: '#1A1A1A',
-        },
-        backButton: {
-            position: 'absolute',
-            top: 20,
-            left: 20,
-            backgroundColor: '#f7bf0b',
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            borderRadius: 8,
-            boxShadowColor: '#000',
-            boxShadowOpacity: 0.1,
-            boxShadowRadius: 4,
-            elevation: 2,
-        },
-        backButtonText: {
-            color: '#1A1A1A',
-            fontWeight: 'bold',
-            fontSize: 16,
-        },
-        button: {
-            width: '90%',
-            padding: 15,
-            backgroundColor: '#f7bf0b',
-            borderRadius: 8,
-            alignItems: 'center',
-            marginTop: 20,
-            boxShadowColor: '#000',
-            boxshadowOpacity: 0.1,
-            boxShadowColorhadowRadius: 6,
-            elevation: 4,
-        },
-        buttonText: {
-            color: '#1A1A1A',
-            fontSize: 18,
-            fontWeight: 'bold',
-        },
-        subtitle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            marginTop: 20,
-            color: '#3274ba',
-        },
-        listItem: {
-            backgroundColor: '#f8f8f8',
-            padding: 15,
-            borderRadius: 8,
-            width: '100%',
-            marginVertical: 8,
-            borderLeftWidth: 5,
-            borderLeftColor: '#3274ba',
-        },
-        listText: {
-            color: '#1A1A1A',
-            fontSize: 16,
-        },
-        selectorContainer: {
-            width: '50%',
-            marginVertical: 10,
-        },
-        label: {
-            fontSize: 16,
-            fontWeight: 'bold',
-            marginBottom: 5,
-            color: '#3274ba',
-        },
-        selectorRow: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-        },
-        selectorButton: {
-            padding: 10,
-            borderRadius: 5,
-            borderWidth: 1,
-            borderColor: '#3274ba',
-            width: 50,
-            alignItems: 'center',
-        },
-        selectedButton: {
-            backgroundColor: '#3274ba',
-        },
-        selectorText: {
-            fontSize: 16,
-            color: '#1A1A1A',
-        }, submissionsContainer: {
-            width: '100%',
-            marginTop: 20,
-            alignItems: 'center',
-        },
+const styles = StyleSheet.create({
+    container: {
+        padding: Theme.spacing.m,
+        backgroundColor: Theme.colors.background,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    formCard: {
+        marginBottom: Theme.spacing.l,
+    },
+    title: {
+        ...Theme.typography.header,
+        color: Theme.colors.primary,
+        fontSize: 24,
+        textAlign: 'center',
+        marginBottom: Theme.spacing.l,
+    },
+    input: {
+        backgroundColor: Theme.colors.transparentLight,
+        borderWidth: 1,
+        borderColor: Theme.colors.glassBorder,
+        borderRadius: Theme.borderRadius.m,
+        padding: Theme.spacing.m,
+        color: Theme.colors.text,
+        marginVertical: Theme.spacing.s,
+    },
+    submitButton: {
+        marginTop: Theme.spacing.m,
+    },
+    disabledButton: {
+        opacity: 0.6,
+        backgroundColor: Theme.colors.surface,
+    },
+    subtitle: {
+        ...Theme.typography.title,
+        color: Theme.colors.primary,
+        fontSize: 18,
+        marginBottom: Theme.spacing.m,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    selectorContainer: {
+        marginVertical: Theme.spacing.s,
+    },
+    label: {
+        ...Theme.typography.caption,
+        color: Theme.colors.textSecondary,
+        marginBottom: Theme.spacing.s,
+    },
+    selectorRow: {
+        flexDirection: 'row',
+        gap: Theme.spacing.m,
+    },
+    selectorButton: {
+        width: 60,
+        height: 50,
+        borderRadius: Theme.borderRadius.m,
+        borderWidth: 1,
+        borderColor: Theme.colors.glassBorder,
+        backgroundColor: Theme.colors.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    selectedButton: {
+        backgroundColor: Theme.colors.primary,
+        borderColor: Theme.colors.primary,
+        ...Theme.shadows.glow,
+    },
+    selectorText: {
+        color: Theme.colors.text,
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    selectedSelectorText: {
+        color: '#000',
+    },
+    submissionsContainer: {
+        width: '100%',
+        marginTop: Theme.spacing.s,
+    },
+    submissionBox: {
+        width: 180,
+        marginRight: Theme.spacing.m,
+        padding: Theme.spacing.m,
+    },
+    submissionDate: {
+        ...Theme.typography.caption,
+        color: Theme.colors.primary,
+        fontWeight: '900',
+        marginBottom: Theme.spacing.s,
+        textAlign: 'center',
+    },
+    submissionStats: {
+        gap: 4,
+    },
+    submissionText: {
+        color: Theme.colors.text,
+        fontSize: 13,
+    },
+    noEntriesText: {
+        color: Theme.colors.textSecondary,
+        fontStyle: 'italic',
+        textAlign: 'center',
+        marginTop: Theme.spacing.l,
+    },
+});
 
-        submissionBox: {
-            backgroundColor: '#f8f8f8',
-            padding: 12,
-            borderRadius: 8,
-            width: 150, // Controls the size of each submission box
-            marginHorizontal: 8, // Spacing between items
-            alignItems: 'center',
-            borderLeftWidth: 5,
-            borderLeftColor: '#3274ba',
-        },
-
-        submissionDate: {
-            fontSize: 14,
-            fontWeight: 'bold',
-            color: '#3274ba',
-            marginBottom: 5,
-        },
-
-        submissionText: {
-            fontSize: 14,
-            color: '#1A1A1A',
-            textAlign: 'center',
-        },
-
-        noEntriesText: {
-            fontSize: 16,
-            color: '#999',
-            fontStyle: 'italic',
-        },
-
-    });
-
-    export default LifestyleScreen;
+export default LifestyleScreen;

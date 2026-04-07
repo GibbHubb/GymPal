@@ -4,13 +4,7 @@ import { CommonActions } from '@react-navigation/native';
 
 const API_URL = 'https://gympalbackend-production.up.railway.app/api';
 
-let navigationRef = null; // Global reference for navigation reset
-
-// ✅ Provide global access to navigation
-export const setNavigationRef = (nav) => {
-  navigationRef = nav;
-};
-
+import { navigationRef } from './utils/RootNavigation';
 // ✅ Get token from storage for Authorization
 const getAuthHeaders = async () => {
   const token = await AsyncStorage.getItem('token');
