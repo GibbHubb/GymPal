@@ -14,6 +14,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
+import CustomHeader from '../../components/CustomHeader';
+import GlassCard from '../../components/GlassCard';
+import { ActivityIndicator } from 'react-native';
 
 export default function CreateWorkout({ navigation }) {
   const [workoutName, setWorkoutName] = useState('');
@@ -134,8 +137,10 @@ export default function CreateWorkout({ navigation }) {
   if (loading) {
     return (
       <ScreenWrapper>
+        <CustomHeader title="Create Workout" />
         <View style={styles.loadingContainer}>
-          <Text style={styles.header}>Loading...</Text>
+          <ActivityIndicator size="large" color={Theme.colors.primary} />
+          <Text style={[styles.header, { marginTop: 20 }]}>Loading...</Text>
         </View>
       </ScreenWrapper>
     );
@@ -143,14 +148,8 @@ export default function CreateWorkout({ navigation }) {
 
   return (
     <ScreenWrapper scrollable={true}>
+      <CustomHeader title="Create Workout" />
       <View style={styles.container}>
-        <View style={styles.headerRowTop}>
-           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnAction}>
-            <Text style={styles.backBtnTextAction}>← Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.header}>Create Workout</Text>
 
         <TextInput 
           style={styles.input} 
@@ -178,7 +177,7 @@ export default function CreateWorkout({ navigation }) {
         </View>
 
         {exercises.map((exercise, index) => (
-          <View key={index} style={styles.exerciseCard}>
+          <GlassCard key={index} style={styles.exerciseCard}>
             <View style={styles.exerciseHeader}>
               <Text style={styles.exerciseLabel}>Exercise {index + 1}</Text>
               <TouchableOpacity onPress={() => removeExercise(index)}>
@@ -231,7 +230,7 @@ export default function CreateWorkout({ navigation }) {
                 />
               </View>
             </View>
-          </View>
+          </GlassCard>
         ))}
 
         <CustomButton 

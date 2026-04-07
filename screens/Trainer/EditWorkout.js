@@ -14,6 +14,9 @@ import { checkUserExists, fetchExercises, addExerciseToWorkout } from '../../uti
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
+import CustomHeader from '../../components/CustomHeader';
+import GlassCard from '../../components/GlassCard';
+import { ActivityIndicator } from 'react-native';
 
 const MemoizedInput = memo(({ value, onChange, placeholder, style }) => (
   <TextInput
@@ -55,12 +58,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
 
   useEffect(() => {
     navigation.setOptions({
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-      ),
-      headerTitle: workout?.name || 'Edit Workout',
+      headerShown: false,
     });
   }, [navigation, workout]);
 
@@ -261,8 +259,10 @@ export default function EditWorkoutScreen({ route, navigation }) {
   if (loading) {
     return (
       <ScreenWrapper>
+        <CustomHeader title="Edit Workout" />
         <View style={styles.loadingContainer}>
-          <Text style={styles.header}>Loading Workout...</Text>
+          <ActivityIndicator size="large" color={Theme.colors.primary} />
+          <Text style={[styles.header, { marginTop: 20 }]}>Loading Workout...</Text>
         </View>
       </ScreenWrapper>
     );
@@ -270,14 +270,8 @@ export default function EditWorkoutScreen({ route, navigation }) {
 
   return (
     <ScreenWrapper scrollable={true}>
+      <CustomHeader title={workout?.name || 'Edit Workout'} />
       <View style={styles.container}>
-        <View style={styles.headerRowTop}>
-           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnAction}>
-            <Text style={styles.backBtnTextAction}>← Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.header}>{workout?.name || 'Edit Workout'}</Text>
 
         <View style={styles.inputContainer}>
           <TextInput

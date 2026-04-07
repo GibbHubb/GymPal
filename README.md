@@ -36,9 +36,21 @@ GymPal is a premium fitness and training application built with React Native and
    This will open the Expo developer tools in your terminal or browser. From there, you can scan the QR code with the Expo Go app on your physical device, or press `i` to run it on an iOS Simulator / `a` for an Android Emulator.
 
 ## 📁 Project Structure highlights
-- `/components`: Reusable UI elements (`CustomButton`, `CustomInput`, `ScreenWrapper`).
-- `/constants`: Global theme (`Theme.js`) for colors, spacing, and typography to maintain visual consistency.
-- `/screens`: 
-  - `/Client`: All screens specific to the authenticated client experience.
-  - `/Trainer`: All screens specific to the authenticated trainer experience.
-- `api.js`: Centralized Axios logic handling all backend API requests, token lifecycle, and data fetching.
+- **`/backend`**: Node.js / Express server handling data persistence, authentication, and training logic.
+- **`/components`**: Reusable UI elements (`CustomButton`, `CustomInput`, `GlassCard`, `CustomHeader`).
+- **`/screens`**: 
+  - `/Client`: Dedicated client dashboard and tracking screens.
+  - `/Trainer`: Workout management and streaming modes.
+- **`/docs`**: Project documentation, ERD diagrams, and technical constraints.
+- **`api.js`**: Centralized Axios logic bridging the React Native frontend to the local or remote API.
+
+## ⚙️ Backend Setup
+The backend is located in the `/backend` folder. To get started:
+
+1. `cd backend`
+2. Create a `.env` file based on `.env.example`.
+3. `npm install`
+4. `npm start` (Runs on port 5000 by default)
+
+## 🎨 Design System
+GymPal follows a premium **Dark/Gold theme**. All styling is centralized in `constants/Theme.js` to ensure visual consistency across the entire application.
