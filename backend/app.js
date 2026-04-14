@@ -9,7 +9,7 @@ const PORT = config.port || 5000;
 
 // ✅ CORS Configuration (Ensure this is before your routes)
 app.use(cors({
-    origin: '*', // Allow ALL origins for now (change this later)
+    origin: true, // true reflects the Request Origin, accommodating credentials: true safely
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
