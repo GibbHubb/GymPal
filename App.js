@@ -2,11 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import AppNavigator from './screens/Navigation';
 import ErrorBoundary from './ErrorBoundary';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { navigationRef } from './utils/RootNavigation';
 import { Theme } from './constants/Theme';
+
+// Show notifications in foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const API_URL = 'https://gympalbackend-production.up.railway.app/api';
 
@@ -18,6 +29,31 @@ const GymPalTheme = {
     text: Theme.colors.text,
   },
 };
+
+// G2 — request permission + register Expo push token with the backend
+async function registerPushToken(authToken) {
+  try {
+    if (!Device.isDevice) return; // push not available in emulator
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    let finalStatus = existing;
+    if (existing !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') return;
+
+    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const expo_push_token = tokenData.data;
+
+    await axios.post(
+      `${API_URL}/users/push-token`,
+      { expo_push_token },
+      { headers: { Authorization: `Bearer ${authToken}` } },
+    );
+  } catch (err) {
+    console.warn('[push] Token registration failed:', err.message);
+  }
+}
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,6 +78,9 @@ export default function App() {
 
         const lastRoute = await AsyncStorage.getItem('lastRoute');
         if (lastRoute) setInitialRoute(lastRoute);
+
+        // G2 — register Expo push token
+        registerPushToken(token);
       } else {
         throw new Error("Token invalid");
       }
@@ -57,6 +96,15 @@ export default function App() {
 
   useEffect(() => {
     refreshAuth();
+
+    // G2 — handle notification tap → navigate to the screen embedded in data
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const screen = response.notification.request.content.data?.screen;
+      if (screen && navigationRef.current?.isReady()) {
+        navigationRef.current.navigate(screen);
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   if (loading) {

@@ -56,6 +56,10 @@ export default function TrainerScreen({ route, navigation }) {
   const [serverUrl, setServerUrl] = useState("https://gympalbackend-production.up.railway.app")
   const [debugMessages, setDebugMessages] = useState([])
   const [showDebug, setShowDebug] = useState(false)
+  // G1 — client live session state
+  const [liveClientId, setLiveClientId] = useState("")
+  const [clientSessionActive, setClientSessionActive] = useState(false)
+  const [pushExerciseName, setPushExerciseName] = useState("")
 
   // Add debug message helper
   const addDebugMessage = (message) => {
@@ -384,6 +388,31 @@ export default function TrainerScreen({ route, navigation }) {
     })
   }
 
+  // G1 — start/end client live session
+  const handleStartClientSession = () => {
+    if (!socket || !liveClientId.trim()) return
+    socket.emit("start_client_session", { clientId: liveClientId.trim() })
+    setClientSessionActive(true)
+    addDebugMessage(`Client session started for ${liveClientId}`)
+  }
+
+  const handleEndClientSession = () => {
+    if (!socket || !liveClientId.trim()) return
+    socket.emit("end_client_session", { clientId: liveClientId.trim() })
+    setClientSessionActive(false)
+    addDebugMessage(`Client session ended for ${liveClientId}`)
+  }
+
+  const handlePushExercise = () => {
+    if (!socket || !liveClientId.trim() || !pushExerciseName.trim()) return
+    socket.emit("push_exercise", {
+      clientId: liveClientId.trim(),
+      exercise: { name: pushExerciseName.trim() },
+    })
+    setPushExerciseName("")
+    addDebugMessage(`Pushed exercise "${pushExerciseName}" to ${liveClientId}`)
+  }
+
   const handleFinishWorkout = async () => {
     if (!userId) {
       Alert.alert("❌ Error", "User ID not found. Please log in again.")
@@ -576,6 +605,41 @@ export default function TrainerScreen({ route, navigation }) {
           />
         </View>
 
+        {/* G1 — Client live session panel */}
+        <View style={styles.liveSessionPanel}>
+          <Text style={styles.liveSessionTitle}>📡 Client Live Session</Text>
+          <View style={styles.liveSessionRow}>
+            <TextInput
+              style={styles.liveSessionInput}
+              placeholder="Client user ID..."
+              placeholderTextColor="#888"
+              value={liveClientId}
+              onChangeText={setLiveClientId}
+              editable={!clientSessionActive}
+            />
+            <TouchableOpacity
+              style={[styles.liveSessionBtn, clientSessionActive ? styles.liveSessionBtnEnd : styles.liveSessionBtnStart]}
+              onPress={clientSessionActive ? handleEndClientSession : handleStartClientSession}
+            >
+              <Text style={styles.liveSessionBtnText}>{clientSessionActive ? "End" : "Start"}</Text>
+            </TouchableOpacity>
+          </View>
+          {clientSessionActive && (
+            <View style={styles.liveSessionRow}>
+              <TextInput
+                style={styles.liveSessionInput}
+                placeholder="Exercise name to push..."
+                placeholderTextColor="#888"
+                value={pushExerciseName}
+                onChangeText={setPushExerciseName}
+              />
+              <TouchableOpacity style={styles.liveSessionBtnPush} onPress={handlePushExercise}>
+                <Text style={styles.liveSessionBtnText}>Push</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
         {/* Debug messages */}
         {showDebug && (
           <ScrollView style={styles.debugContainer}>
@@ -722,4 +786,45 @@ const styles = StyleSheet.create({
     color: Theme.colors.primary,
     marginBottom: 2,
   },
+  liveSessionPanel: {
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.borderRadius.m,
+    borderWidth: 1,
+    borderColor: Theme.colors.glassBorder,
+  },
+  liveSessionTitle: {
+    color: Theme.colors.primary,
+    fontWeight: "700",
+    fontSize: 12,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  liveSessionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  liveSessionInput: {
+    flex: 1,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.glassBorder,
+    borderRadius: 6,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    color: "#fff",
+    fontSize: 13,
+  },
+  liveSessionBtn: {
+    marginLeft: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  liveSessionBtnStart: { backgroundColor: Theme.colors.primary },
+  liveSessionBtnEnd:   { backgroundColor: Theme.colors.error },
+  liveSessionBtnPush:  { marginLeft: 8, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 6, backgroundColor: "#5c7cfa" },
+  liveSessionBtnText:  { color: "#000", fontWeight: "900", fontSize: 12, textTransform: "uppercase" },
 })

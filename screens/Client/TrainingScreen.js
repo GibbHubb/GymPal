@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,10 @@ import {
   ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { io } from 'socket.io-client';
 import { fetchExercises, submitWorkout } from '../../utils/api';
+
+const SERVER_URL = 'https://gympalbackend-production.up.railway.app';
 
 
 const TrainingScreen = ({ navigation }) => {
@@ -24,10 +27,57 @@ const TrainingScreen = ({ navigation }) => {
   const [weight, setWeight] = useState('');
   const [exercises, setExercises] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // G1 — live session state
+  const [liveSessionActive, setLiveSessionActive] = useState(false);
+  const [liveExercises, setLiveExercises] = useState([]);
+  const socketRef = useRef(null);
 
   useEffect(() => {
     loadExercises();
+    initSocket();
+    return () => {
+      socketRef.current?.disconnect();
+    };
   }, []);
+
+  const initSocket = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('user_id');
+      if (!userId) return;
+
+      const socket = io(SERVER_URL, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+      socketRef.current = socket;
+
+      socket.on('connect', () => {
+        // Register user room so trainer can target this client
+        socket.emit('register_user', { userId });
+        // Join client session room for exercise pushes
+        socket.emit('join_client_session', { clientId: userId });
+      });
+
+      socket.on('session_started', () => {
+        setLiveSessionActive(true);
+        setLiveExercises([]);
+      });
+
+      socket.on('exercise_pushed', ({ exercise } = {}) => {
+        if (exercise) {
+          setLiveExercises((prev) => [exercise, ...prev]);
+        }
+      });
+
+      socket.on('session_ended', () => {
+        setLiveSessionActive(false);
+      });
+    } catch (err) {
+      console.log('Socket init error:', err.message);
+    }
+  };
 
   const loadExercises = async () => {
     try {
@@ -151,6 +201,23 @@ const finishWorkout = async () => {
         <Text style={styles.backButtonText}>← Back</Text>
       </TouchableOpacity>
 
+      {/* G1 — Live session banner */}
+      {liveSessionActive && (
+        <View style={styles.liveBanner}>
+          <Text style={styles.liveBannerText}>📡 Live Session Active</Text>
+        </View>
+      )}
+
+      {/* G1 — Pushed exercises from trainer */}
+      {liveExercises.length > 0 && (
+        <View style={styles.liveExercisesContainer}>
+          <Text style={styles.liveExercisesTitle}>Exercises from trainer</Text>
+          {liveExercises.map((ex, i) => (
+            <Text key={i} style={styles.liveExerciseItem}>▸ {ex.name}</Text>
+          ))}
+        </View>
+      )}
+
       {/* GymPal Logo */}
       <Text style={styles.title}>Training Log</Text>
 
@@ -231,6 +298,11 @@ const finishWorkout = async () => {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 20, alignItems: 'center', backgroundColor: '#FFFFFF' },
+  liveBanner: { width: '100%', backgroundColor: '#3274ba', borderRadius: 8, padding: 10, marginBottom: 12, alignItems: 'center' },
+  liveBannerText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  liveExercisesContainer: { width: '100%', backgroundColor: '#eef4ff', borderRadius: 8, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#8ebce6' },
+  liveExercisesTitle: { fontWeight: 'bold', fontSize: 14, color: '#3274ba', marginBottom: 6 },
+  liveExerciseItem: { fontSize: 14, color: '#1A1A1A', marginBottom: 3 },
   logo: { width: 150, height: 80, resizeMode: 'contain', marginBottom: 20 },
   title: { fontSize: 26, fontWeight: 'bold', color: '#3274ba', marginBottom: 20 },
   input: { borderWidth: 1, padding: 12, marginVertical: 8, borderRadius: 8, width: '100%', backgroundColor: '#f8f8f8', borderColor: '#8ebce6', color: '#1A1A1A' },

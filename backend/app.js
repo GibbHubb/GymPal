@@ -1,8 +1,11 @@
+const http    = require('http');
 const express = require('express');
-const cors = require('cors');
-require('dotenv').config(); 
-const db = require('./models/db'); 
+const cors    = require('cors');
+const { Server } = require('socket.io');
+require('dotenv').config();
+const db     = require('./models/db');
 const config = require('./config/config');
+const socketHandlers = require('./socket-io-handlers');
 
 const app = express();
 const PORT = config.port || 5000;
@@ -73,10 +76,21 @@ app.use((err, req, res, next) => {
     });
 });
 
+// ✅ HTTP server + Socket.IO
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin:      true,
+        methods:     ['GET', 'POST'],
+        credentials: true,
+    },
+});
+socketHandlers(io);
+
 // ✅ Start Server
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`✅ Connected to database: ${config.databaseUrl}`);
 });
 
-module.exports = { app, server };
+module.exports = { app, server, io };

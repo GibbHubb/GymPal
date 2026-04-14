@@ -181,6 +181,25 @@ const refreshToken = async (req, res) => {
   }
 };
 
+// G2 — Save Expo push token for the authenticated user
+const savePushToken = async (req, res) => {
+  const { user_id } = req.user;
+  const { expo_push_token } = req.body;
+  if (!expo_push_token) {
+    return res.status(400).json({ message: 'expo_push_token is required' });
+  }
+  try {
+    await db.query(
+      'UPDATE users SET expo_push_token = $1 WHERE user_id = $2',
+      [expo_push_token, user_id],
+    );
+    res.status(200).json({ message: 'Push token saved.' });
+  } catch (err) {
+    console.error('Error saving push token:', err.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   loginUser,
   createUser,
@@ -188,4 +207,5 @@ module.exports = {
   getUserProfile,
   authenticateToken,
   refreshToken,
+  savePushToken,
 };

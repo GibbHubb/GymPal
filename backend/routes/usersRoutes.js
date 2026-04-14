@@ -6,6 +6,7 @@ const {
   getUserProfile,
   refreshToken,
   authenticateToken,
+  savePushToken,
 } = require('../controllers/usersController');
 
 const router = express.Router();
@@ -34,5 +35,8 @@ router.get('/', authenticateToken, getUsers);
 router.get('/me', authenticateToken, getUserProfile);
 
 router.get('/:user_id', authenticateToken, getUserProfile);
+
+// G2 — Push token registration
+router.post('/push-token', authenticateToken, savePushToken);
 
 module.exports = router;
