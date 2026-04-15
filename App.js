@@ -9,6 +9,7 @@ import ErrorBoundary from './ErrorBoundary';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import { navigationRef } from './utils/RootNavigation';
 import { Theme } from './constants/Theme';
+import { runSync } from './utils/syncEngine';
 
 // Show notifications in foreground
 Notifications.setNotificationHandler({
@@ -97,6 +98,25 @@ export default function App() {
   useEffect(() => {
     refreshAuth();
 
+    // G3 — start offline sync engine
+    // NetInfo events are synchronous callbacks, but AsyncStorage is async.
+    // We bridge this by triggering an async runSync directly from the listener
+    // rather than relying on getAuthToken() returning a value synchronously.
+    const API_BASE = 'https://gympalbackend-production.up.railway.app';
+    const { default: NetInfo } = require('@react-native-community/netinfo');
+    const syncOnConnect = async (state) => {
+      if (state.isConnected) {
+        const token = await AsyncStorage.getItem('token');
+        if (token) runSync(API_BASE, token).catch(() => {});
+      }
+    };
+    const netInfoUnsub = NetInfo.addEventListener(syncOnConnect);
+
+    // Also attempt an immediate sync on mount
+    AsyncStorage.getItem('token').then(token => {
+      if (token) runSync(API_BASE, token).catch(() => {});
+    });
+
     // G2 — handle notification tap → navigate to the screen embedded in data
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const screen = response.notification.request.content.data?.screen;
@@ -104,7 +124,10 @@ export default function App() {
         navigationRef.current.navigate(screen);
       }
     });
-    return () => sub.remove();
+    return () => {
+      sub.remove();
+      netInfoUnsub();
+    };
   }, []);
 
   if (loading) {

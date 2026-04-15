@@ -14,7 +14,7 @@ const getWorkouts = async (req, res) => {
 // Create a new workout
 const createWorkout = async (req, res) => {
   const { user_id } = req.user; // Get the user ID from the authenticated token
-  const { name, date, notes, exercises } = req.body;
+  const { name, date, notes, exercises, client_id } = req.body;
 
   if (!name || !Array.isArray(exercises) || exercises.length === 0) {
     return res.status(400).json({
@@ -23,15 +23,29 @@ const createWorkout = async (req, res) => {
   }
 
   try {
-    const query =
-      'INSERT INTO Workouts (user_id, name, date, notes) VALUES ($1, $2, $3, $4) RETURNING *';
+    // Idempotency: if a client_id is provided and a row with that UUID already exists, return it
+    if (client_id) {
+      const { rows: existing } = await db.query(
+        'SELECT * FROM Workouts WHERE client_id = $1',
+        [client_id]
+      );
+      if (existing.length > 0) {
+        return res.status(200).json({
+          message: 'Workout already exists (idempotent).',
+          workout: existing[0],
+        });
+      }
+    }
 
-    const { rows: workoutRows } = await db.query(query, [
-      user_id,
-      name,
-      date || new Date(),
-      notes,
-    ]);
+    const query = client_id
+      ? 'INSERT INTO Workouts (user_id, name, date, notes, client_id) VALUES ($1, $2, $3, $4, $5) RETURNING *'
+      : 'INSERT INTO Workouts (user_id, name, date, notes) VALUES ($1, $2, $3, $4) RETURNING *';
+
+    const queryParams = client_id
+      ? [user_id, name, date || new Date(), notes, client_id]
+      : [user_id, name, date || new Date(), notes];
+
+    const { rows: workoutRows } = await db.query(query, queryParams);
 
     const workout = workoutRows[0];
     const workoutId = workout.workout_id;

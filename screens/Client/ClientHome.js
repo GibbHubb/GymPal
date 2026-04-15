@@ -1,12 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, Alert, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme } from '../../constants/Theme';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import { getPendingCount } from '../../utils/syncQueue';
 
 
 const ClientHome = ({ navigation }) => {
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+
+  useEffect(() => {
+    const loadCount = async () => {
+      const count = await getPendingCount();
+      setPendingSyncCount(count);
+    };
+    loadCount();
+    // Refresh count when screen comes back into focus
+    const unsubscribe = navigation.addListener('focus', loadCount);
+    return unsubscribe;
+  }, [navigation]);
+
   const handleLogout = async () => {
     try {
       await AsyncStorage.clear();
@@ -41,11 +55,18 @@ const ClientHome = ({ navigation }) => {
             onPress={() => navigation.navigate('LifestyleScreen')} 
             style={styles.actionBtn} 
           />
-          <CustomButton 
-            title="💪 Training" 
-            onPress={() => navigation.navigate('TrainingScreen')} 
-            style={styles.actionBtn} 
-          />
+          <View style={styles.trainingBtnWrapper}>
+            <CustomButton
+              title="💪 Training"
+              onPress={() => navigation.navigate('TrainingScreen')}
+              style={styles.actionBtn}
+            />
+            {pendingSyncCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{pendingSyncCount}</Text>
+              </View>
+            )}
+          </View>
           <CustomButton 
             title="📊 Progress" 
             onPress={() => navigation.navigate('ProgressScreen')} 
@@ -100,7 +121,29 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     width: '100%',
-  }
+  },
+  trainingBtnWrapper: {
+    position: 'relative',
+    width: '100%',
+  },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#e53935',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    zIndex: 1,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
 });
 
 export default ClientHome;

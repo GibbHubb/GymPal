@@ -33,7 +33,9 @@
     "react-native-svg": "^15.8.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.19.13",
+    "@react-native-community/netinfo": "^11.0.0",
     "socket.io-client": "^4.5.1",
+    "uuid": "^9.0.0",
     "webpack": "^5.98.0"
   },
   "devDependencies": {

@@ -12,7 +12,11 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { io } from 'socket.io-client';
-import { fetchExercises, submitWorkout } from '../../utils/api';
+import { v4 as uuidv4 } from 'uuid';
+import 'react-native-get-random-values'; // required for uuid in React Native
+import { fetchExercises } from '../../utils/api';
+import { enqueue, getPendingCount } from '../../utils/syncQueue';
+import { runSync } from '../../utils/syncEngine';
 
 const SERVER_URL = 'https://gympalbackend-production.up.railway.app';
 
@@ -27,6 +31,9 @@ const TrainingScreen = ({ navigation }) => {
   const [weight, setWeight] = useState('');
   const [exercises, setExercises] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // G3 — offline sync state
+  const [syncStatus, setSyncStatus] = useState(null); // null | 'pending' | 'synced' | 'failed'
+  const [pendingCount, setPendingCount] = useState(0);
   // G1 — live session state
   const [liveSessionActive, setLiveSessionActive] = useState(false);
   const [liveExercises, setLiveExercises] = useState([]);
@@ -35,10 +42,16 @@ const TrainingScreen = ({ navigation }) => {
   useEffect(() => {
     loadExercises();
     initSocket();
+    loadPendingCount();
     return () => {
       socketRef.current?.disconnect();
     };
   }, []);
+
+  const loadPendingCount = async () => {
+    const count = await getPendingCount();
+    setPendingCount(count);
+  };
 
   const initSocket = async () => {
     try {
@@ -146,50 +159,54 @@ const finishWorkout = async () => {
   }
 
   setIsSubmitting(true);
+  setSyncStatus('pending');
 
   try {
       const user_id = await AsyncStorage.getItem('user_id');
-      console.log("🆔 Retrieved User ID:", user_id);
+      const authToken = await AsyncStorage.getItem('token');
 
       if (!user_id) {
           Alert.alert('Error', 'User ID not found');
           return;
       }
 
-      console.log("🚀 Preparing Workout Data for Submission:");
-      console.log("Exercises:", exercises);
-
-      if (!Array.isArray(exercises) || exercises.length === 0) {
-          console.error("❌ Exercises is not an array or is empty! Received:", exercises);
-          throw new Error("Workout data must be an array with at least one exercise.");
-      }
-
-      const workoutData = {
-          name: null,  // ✅ Auto-generated in backend
-          exercises: exercises
+      const entryId = uuidv4();
+      const workoutPayload = {
+          user_id: parseInt(user_id),
+          name: null,
+          notes: null,
+          exercises: exercises.map(exercise => ({
+              name: exercise.name,
+              sets: parseInt(exercise.sets),
+              reps: parseInt(exercise.reps),
+              weight: parseFloat(exercise.weight) || 0,
+          })),
+          client_id: entryId,
       };
 
-      console.log("🚀 Final Workout Data:", JSON.stringify(workoutData, null, 2));
+      // G3 — enqueue for offline-first; always persists before attempting network
+      await enqueue({ id: entryId, type: 'workout_log', payload: workoutPayload });
+      await loadPendingCount();
 
-      const response = await submitWorkout(user_id, workoutData);
+      Alert.alert(
+          'Workout Queued',
+          'Your workout has been saved and will sync when online.',
+          [{ text: 'OK' }]
+      );
+      setExercises([]);
 
-      if (response) {
-          console.log("✅ Workout API Response:", response);
-          
-          // ✅ Show a pop-up confirmation
-          Alert.alert(
-              "Workout Submitted ✅", 
-              `Your workout "${response.name}" has been successfully logged!`,
-              [{ text: "OK", onPress: () => console.log("OK Pressed") }]
-          );
-
-          setExercises([]); // ✅ Clear exercises after submission
-      } else {
-          Alert.alert('Error', 'Workout submission failed.');
+      // Try to sync immediately if online
+      try {
+          await runSync(SERVER_URL, authToken);
+          setSyncStatus('synced');
+      } catch {
+          setSyncStatus('failed');
       }
+      await loadPendingCount();
   } catch (error) {
-      console.error("❌ Error submitting workout:", error);
-      Alert.alert('Error', 'Failed to submit workout data.');
+      console.error('Error queuing workout:', error);
+      setSyncStatus('failed');
+      Alert.alert('Error', 'Failed to save workout data.');
   } finally {
       setIsSubmitting(false);
   }
@@ -200,6 +217,23 @@ const finishWorkout = async () => {
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>← Back</Text>
       </TouchableOpacity>
+
+      {/* G3 — Pending sync badge */}
+      {pendingCount > 0 && (
+        <View style={styles.syncBadge}>
+          <Text style={styles.syncBadgeText}>⏳ {pendingCount} workout{pendingCount > 1 ? 's' : ''} pending sync</Text>
+        </View>
+      )}
+      {syncStatus === 'synced' && pendingCount === 0 && (
+        <View style={[styles.syncBadge, styles.syncBadgeSynced]}>
+          <Text style={styles.syncBadgeText}>✓ Synced</Text>
+        </View>
+      )}
+      {syncStatus === 'failed' && (
+        <View style={[styles.syncBadge, styles.syncBadgeFailed]}>
+          <Text style={styles.syncBadgeText}>⚠ Sync failed — will retry when online</Text>
+        </View>
+      )}
 
       {/* G1 — Live session banner */}
       {liveSessionActive && (
@@ -298,6 +332,10 @@ const finishWorkout = async () => {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 20, alignItems: 'center', backgroundColor: '#FFFFFF' },
+  syncBadge: { width: '100%', backgroundColor: '#f7bf0b', borderRadius: 8, padding: 8, marginBottom: 8, alignItems: 'center' },
+  syncBadgeSynced: { backgroundColor: '#4caf50' },
+  syncBadgeFailed: { backgroundColor: '#e53935' },
+  syncBadgeText: { color: '#1A1A1A', fontWeight: 'bold', fontSize: 13 },
   liveBanner: { width: '100%', backgroundColor: '#3274ba', borderRadius: 8, padding: 10, marginBottom: 12, alignItems: 'center' },
   liveBannerText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   liveExercisesContainer: { width: '100%', backgroundColor: '#eef4ff', borderRadius: 8, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#8ebce6' },
