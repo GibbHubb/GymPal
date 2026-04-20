@@ -7,7 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { Theme } from "../../constants/Theme"
 import ScreenWrapper from "../../components/ScreenWrapper"
 import CustomButton from "../../components/CustomButton"
-import { finishGroupWorkout } from "../../utils/api"
+import { finishGroupWorkout, fetchTemplates, createTemplate, deleteTemplate } from "../../utils/api"
 
 let socket = null
 
@@ -60,12 +60,58 @@ export default function TrainerScreen({ route, navigation }) {
   const [liveClientId, setLiveClientId] = useState("")
   const [clientSessionActive, setClientSessionActive] = useState(false)
   const [pushExerciseName, setPushExerciseName] = useState("")
+  // G7 — workout templates
+  const [templates, setTemplates] = useState([])
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [templateName, setTemplateName] = useState("")
+  const [showSaveModal, setShowSaveModal] = useState(false)
 
   // Add debug message helper
   const addDebugMessage = (message) => {
     console.log(message)
     setDebugMessages((prev) => [message, ...prev.slice(0, 9)])
   }
+
+  // G7 — template handlers
+  const loadTemplates = async () => {
+    try {
+      const data = await fetchTemplates()
+      setTemplates(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error("Error loading templates:", err)
+    }
+  }
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) return Alert.alert("Error", "Template name is required.")
+    try {
+      await createTemplate(templateName.trim(), workout.exercises)
+      setTemplateName("")
+      setShowSaveModal(false)
+      loadTemplates()
+      Alert.alert("Saved", `Template "${templateName.trim()}" saved.`)
+    } catch (err) {
+      Alert.alert("Error", "Failed to save template.")
+    }
+  }
+
+  const handleLoadTemplate = (template) => {
+    setWorkout((prev) => ({ ...prev, exercises: template.exercises }))
+    addDebugMessage(`Loaded template: ${template.name}`)
+  }
+
+  const handleDeleteTemplate = async (id) => {
+    try {
+      await deleteTemplate(id)
+      loadTemplates()
+    } catch (err) {
+      Alert.alert("Error", "Failed to delete template.")
+    }
+  }
+
+  useEffect(() => {
+    if (showTemplates && templates.length === 0) loadTemplates()
+  }, [showTemplates])
 
   // Calculate participant groups
   const numParticipants = workout.participants.length
@@ -636,6 +682,61 @@ export default function TrainerScreen({ route, navigation }) {
               <TouchableOpacity style={styles.liveSessionBtnPush} onPress={handlePushExercise}>
                 <Text style={styles.liveSessionBtnText}>Push</Text>
               </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* G7 — Workout Templates */}
+        <View style={styles.liveSessionPanel}>
+          <TouchableOpacity onPress={() => setShowTemplates(!showTemplates)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.liveSessionTitle}>📋 Templates</Text>
+            <Text style={{ color: Theme.colors.primary, fontSize: 12 }}>{showTemplates ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
+
+          {showTemplates && (
+            <View>
+              {/* Save current workout as template */}
+              {!showSaveModal ? (
+                <TouchableOpacity
+                  style={[styles.liveSessionBtn, styles.liveSessionBtnStart, { marginBottom: 8, alignSelf: 'flex-start' }]}
+                  onPress={() => setShowSaveModal(true)}
+                >
+                  <Text style={styles.liveSessionBtnText}>Save as Template</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.liveSessionRow, { marginBottom: 8 }]}>
+                  <TextInput
+                    style={styles.liveSessionInput}
+                    placeholder="Template name..."
+                    placeholderTextColor="#888"
+                    value={templateName}
+                    onChangeText={setTemplateName}
+                  />
+                  <TouchableOpacity style={[styles.liveSessionBtn, styles.liveSessionBtnStart]} onPress={handleSaveTemplate}>
+                    <Text style={styles.liveSessionBtnText}>Save</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.liveSessionBtn, styles.liveSessionBtnEnd]} onPress={() => setShowSaveModal(false)}>
+                    <Text style={styles.liveSessionBtnText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Template list */}
+              {templates.length === 0 ? (
+                <Text style={{ color: '#888', fontSize: 12 }}>No saved templates yet.</Text>
+              ) : (
+                templates.map((t) => (
+                  <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: Theme.colors.glassBorder }}>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => handleLoadTemplate(t)}>
+                      <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{t.name}</Text>
+                      <Text style={{ color: '#888', fontSize: 11 }}>{t.exercises.length} exercises</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteTemplate(t.id)}>
+                      <Text style={{ color: Theme.colors.error, fontSize: 16, paddingHorizontal: 8 }}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
             </View>
           )}
         </View>

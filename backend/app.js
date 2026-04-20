@@ -56,6 +56,7 @@ app.use('/api/workouts', require('./routes/workoutsRoutes'));
 app.use('/api/group-workouts', require('./routes/groupWorkoutsRoutes'));
 app.use('/api/lifestyle-data', require('./routes/lifestyleDataRoutes'));
 app.use('/api/intake', require('./routes/intakeRoutes'));
+app.use('/api/templates', require('./routes/workoutTemplatesRoutes'));
 
 // ✅ Catch-all for undefined routes
 app.use((req, res, next) => {
@@ -92,5 +93,8 @@ server.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`✅ Connected to database: ${config.databaseUrl}`);
 });
+
+// G8 — weekly summary cron
+require('./jobs/weekly_summary');
 
 module.exports = { app, server, io };

@@ -367,6 +367,40 @@ export const fetchProgressData = async (userId, category) => {
   }
 };
 
+/**
+ * Fetch per-exercise progress (weight/reps over time)
+ */
+export const fetchExerciseProgress = async (exerciseId) => {
+  try {
+    const api = await createAuthApiInstance();
+    const response = await api.get(`/workouts/progress/${exerciseId}`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching exercise progress:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Workout templates (trainer)
+ */
+export const fetchTemplates = async () => {
+  const api = await createAuthApiInstance();
+  const response = await api.get('/templates');
+  return response.data;
+};
+
+export const createTemplate = async (name, exercises) => {
+  const api = await createAuthApiInstance();
+  const response = await api.post('/templates', { name, exercises });
+  return response.data;
+};
+
+export const deleteTemplate = async (id) => {
+  const api = await createAuthApiInstance();
+  await api.delete(`/templates/${id}`);
+};
+
 export const registerUser = async ({ username, role }) => {
   try {
 
