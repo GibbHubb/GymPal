@@ -401,6 +401,33 @@ export const deleteTemplate = async (id) => {
   await api.delete(`/templates/${id}`);
 };
 
+/**
+ * G10 — Body metrics (client-logged weight / body-fat %)
+ */
+export const postBodyMetric = async ({ weight, body_fat_pct, notes, logged_at }) => {
+  const api = await createAuthApiInstance();
+  try {
+    const response = await api.post('/body-metrics', { weight, body_fat_pct, notes, logged_at });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error posting body metric:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const getBodyMetrics = async (userId) => {
+  const api = await createAuthApiInstance();
+  try {
+    const id = userId || (await AsyncStorage.getItem('user_id'));
+    if (!id) throw new Error('User ID missing.');
+    const response = await api.get(`/body-metrics/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching body metrics:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
 export const registerUser = async ({ username, role }) => {
   try {
 

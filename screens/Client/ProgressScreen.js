@@ -4,7 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { fetchProgressData, fetchExercises, fetchExerciseProgress } from '../../utils/api';
+import { fetchProgressData, fetchExercises, fetchExerciseProgress, getBodyMetrics, postBodyMetric } from '../../utils/api';
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomHeader from '../../components/CustomHeader';
@@ -30,6 +30,15 @@ const ProgressScreen = () => {
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [exerciseChartData, setExerciseChartData] = useState(null);
 
+  // G10 — body metrics tab state
+  const [metrics, setMetrics] = useState([]);
+  const [metricsLoaded, setMetricsLoaded] = useState(false);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+  const [mWeight, setMWeight] = useState('');
+  const [mBodyFat, setMBodyFat] = useState('');
+  const [mNotes, setMNotes] = useState('');
+  const [mSubmitting, setMSubmitting] = useState(false);
+
   const exerciseCategories = [
     { label: 'Weight', value: 'weight' },
     { label: 'Vertical Push', value: 'vertical_push' },
@@ -51,7 +60,51 @@ const ProgressScreen = () => {
     if (activeTab === 'exercise' && !exercisesLoaded) {
       loadExercises();
     }
+    // G10 — lazy-load metrics when switching to metrics tab
+    if (activeTab === 'metrics' && !metricsLoaded) {
+      loadBodyMetrics();
+    }
   }, [activeTab]);
+
+  // G10 — load body metrics
+  const loadBodyMetrics = async () => {
+    try {
+      setMetricsLoading(true);
+      const data = await getBodyMetrics();
+      setMetrics(Array.isArray(data) ? data : []);
+      setMetricsLoaded(true);
+    } catch (err) {
+      console.error('Error loading body metrics:', err);
+      setMetrics([]);
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
+
+  const submitBodyMetric = async () => {
+    const w = parseFloat(mWeight);
+    if (!w || isNaN(w) || w <= 0) {
+      Alert.alert('Error', 'Please enter a valid weight in kg.');
+      return;
+    }
+    const bf = mBodyFat ? parseFloat(mBodyFat) : null;
+    if (bf !== null && (isNaN(bf) || bf < 0 || bf > 100)) {
+      Alert.alert('Error', 'Body fat % must be between 0 and 100.');
+      return;
+    }
+    try {
+      setMSubmitting(true);
+      await postBodyMetric({ weight: w, body_fat_pct: bf, notes: mNotes || null });
+      setMWeight('');
+      setMBodyFat('');
+      setMNotes('');
+      await loadBodyMetrics();
+    } catch (err) {
+      Alert.alert('Error', 'Failed to save body metric.');
+    } finally {
+      setMSubmitting(false);
+    }
+  };
 
   // Load exercise progress when an exercise is selected
   useEffect(() => {
@@ -285,6 +338,112 @@ const ProgressScreen = () => {
     </>
   );
 
+  // G10 — render body metrics tab
+  const renderMetricsTab = () => {
+    const recent = metrics.slice(-10);
+    const weightHistory = recent.map((m) => Number(m.weight) || 0);
+    const bfHistory = recent.map((m) => (m.body_fat_pct != null ? Number(m.body_fat_pct) : null));
+    const hasBf = bfHistory.some((v) => v != null && v > 0);
+    const labels = recent.map((m) => new Date(m.logged_at).toLocaleDateString([], { month: 'short', day: 'numeric' }));
+
+    const datasets = [
+      { data: weightHistory.length ? weightHistory : [0], color: (opacity = 1) => `rgba(246, 176, 0, ${opacity})`, strokeWidth: 2 },
+    ];
+    const legend = ['Weight (kg)'];
+    if (hasBf) {
+      datasets.push({
+        data: bfHistory.map((v) => (v == null ? 0 : v)),
+        color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+        strokeWidth: 2,
+      });
+      legend.push('Body Fat %');
+    }
+
+    return (
+      <>
+        <GlassCard style={styles.pickerCard}>
+          <Text style={styles.label}>Log New Entry</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Weight (kg) *"
+            placeholderTextColor={Theme.colors.textSecondary}
+            value={mWeight}
+            onChangeText={setMWeight}
+            keyboardType="numeric"
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Body Fat % (optional)"
+            placeholderTextColor={Theme.colors.textSecondary}
+            value={mBodyFat}
+            onChangeText={setMBodyFat}
+            keyboardType="numeric"
+          />
+          <TextInput
+            style={[styles.searchInput, { height: 60 }]}
+            placeholder="Notes (optional)"
+            placeholderTextColor={Theme.colors.textSecondary}
+            value={mNotes}
+            onChangeText={setMNotes}
+            multiline
+          />
+          <TouchableOpacity
+            style={[styles.metricSubmitBtn, mSubmitting && { opacity: 0.6 }]}
+            onPress={submitBodyMetric}
+            disabled={mSubmitting}
+          >
+            <Text style={styles.metricSubmitText}>{mSubmitting ? 'Saving...' : 'Log Entry'}</Text>
+          </TouchableOpacity>
+        </GlassCard>
+
+        {metricsLoading ? (
+          <View style={styles.centerContent}>
+            <ActivityIndicator size="large" color={Theme.colors.primary} />
+          </View>
+        ) : recent.length > 0 ? (
+          <View style={styles.chartSection}>
+            <Text style={styles.chartTitle}>Body Composition</Text>
+            <GlassCard style={styles.chartContainer}>
+              <LineChart
+                data={{ labels, datasets, legend }}
+                width={Dimensions.get('window').width - 60}
+                height={260}
+                chartConfig={{
+                  backgroundColor: Theme.colors.surface,
+                  backgroundGradientFrom: Theme.colors.surface,
+                  backgroundGradientTo: Theme.colors.surface,
+                  decimalPlaces: 1,
+                  color: (opacity = 1) => `rgba(255, 215, 0, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  style: { borderRadius: 16 },
+                  propsForDots: { r: '4', strokeWidth: '2', stroke: Theme.colors.primary },
+                }}
+                bezier
+                style={styles.chart}
+              />
+            </GlassCard>
+            <View style={styles.legendRow}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: '#F6B000' }]} />
+                <Text style={styles.legendText}>Weight (kg)</Text>
+              </View>
+              {hasBf && (
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: '#FFFFFF' }]} />
+                  <Text style={styles.legendText}>Body Fat %</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.centerContent}>
+            <Text style={styles.noDataText}>Log your first entry to see your trend.</Text>
+          </View>
+        )}
+      </>
+    );
+  };
+
   return (
     <ScreenWrapper>
       <CustomHeader title="Progress Tracker" />
@@ -303,9 +462,17 @@ const ProgressScreen = () => {
           >
             <Text style={[styles.tabText, activeTab === 'exercise' && styles.tabTextActive]}>By Exercise</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'metrics' && styles.tabActive]}
+            onPress={() => setActiveTab('metrics')}
+          >
+            <Text style={[styles.tabText, activeTab === 'metrics' && styles.tabTextActive]}>Body</Text>
+          </TouchableOpacity>
         </View>
 
-        {activeTab === 'category' ? renderCategoryTab() : renderExerciseTab()}
+        {activeTab === 'category' && renderCategoryTab()}
+        {activeTab === 'exercise' && renderExerciseTab()}
+        {activeTab === 'metrics' && renderMetricsTab()}
       </View>
     </ScreenWrapper>
   );
@@ -462,6 +629,21 @@ const styles = StyleSheet.create({
   legendText: {
     color: Theme.colors.textSecondary,
     fontSize: 12,
+  },
+  // G10 — body metrics styles
+  metricSubmitBtn: {
+    marginTop: 8,
+    backgroundColor: Theme.colors.primary,
+    paddingVertical: 12,
+    borderRadius: Theme.borderRadius.m,
+    alignItems: 'center',
+  },
+  metricSubmitText: {
+    color: Theme.colors.background,
+    fontWeight: '900',
+    fontSize: 13,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 });
 
