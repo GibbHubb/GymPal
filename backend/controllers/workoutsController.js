@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const { sendToUser } = require('../services/push_service');
 
 // Get all workouts
 const getWorkouts = async (req, res) => {
@@ -50,6 +51,10 @@ const createWorkout = async (req, res) => {
     const workout = workoutRows[0];
     const workoutId = workout.workout_id;
 
+    // G9 — PB detection: for each exercise, compute best volume BEFORE this workout,
+    // then compare against max volume in the just-logged sets.
+    const personalBests = [];
+
     // Insert exercises into workout_exercises
     const insertPromises = exercises.map(({ exercise_id, sets }) => {
       return sets.map(({ weight, reps, rir }) => {
@@ -62,12 +67,69 @@ const createWorkout = async (req, res) => {
 
     await Promise.all(insertPromises.flat());
 
+    // G9 — After insert, run PB detection per exercise (volume = weight * reps)
+    for (const ex of exercises) {
+      try {
+        if (!ex.exercise_id || !Array.isArray(ex.sets) || ex.sets.length === 0) continue;
+
+        // Best volume in just-logged sets
+        const bestNewVolume = ex.sets.reduce((max, s) => {
+          const v = (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0);
+          return v > max ? v : max;
+        }, 0);
+        if (bestNewVolume <= 0) continue;
+
+        // Historical best volume (excluding the rows we just inserted by limiting to older workouts)
+        const { rows: histRows } = await db.query(
+          `SELECT COALESCE(MAX(we.weight * we.reps), 0) AS best_volume,
+                  COUNT(*) AS prior_count
+             FROM workout_exercises we
+             JOIN workouts w ON we.workout_id = w.workout_id
+            WHERE we.exercise_id = $1
+              AND w.user_id = $2
+              AND w.workout_id <> $3`,
+          [ex.exercise_id, user_id, workoutId]
+        );
+        const prevBest = parseFloat(histRows[0]?.best_volume || 0);
+        const priorCount = parseInt(histRows[0]?.prior_count || 0, 10);
+
+        // Require at least one prior entry to avoid false "first-ever" PBs
+        if (priorCount > 0 && bestNewVolume > prevBest) {
+          // Fetch exercise name for the banner/notification
+          const { rows: exRows } = await db.query(
+            'SELECT name FROM exercises WHERE exercise_id = $1',
+            [ex.exercise_id]
+          );
+          const exerciseName = exRows[0]?.name || `Exercise #${ex.exercise_id}`;
+
+          personalBests.push({
+            exercise_id: ex.exercise_id,
+            exercise_name: exerciseName,
+            new_volume: bestNewVolume,
+            previous_best: prevBest,
+          });
+
+          // Fire-and-forget push to the user themselves (self-notification).
+          // Trainer push is intentionally skipped for v1 — no trainer-client FK exists.
+          sendToUser(
+            user_id,
+            'New Personal Best! 🏆',
+            `${exerciseName}: volume ${bestNewVolume} (was ${Math.round(prevBest)})`,
+            { type: 'personal_best', exercise_id: ex.exercise_id }
+          ).catch(() => {});
+        }
+      } catch (pbErr) {
+        console.error('[G9] PB detection error:', pbErr.message);
+      }
+    }
+
     res.status(201).json({
       message: 'Workout created successfully.',
       workout: {
         ...workout,
         exercises,
       },
+      personal_bests: personalBests,
     });
   } catch (err) {
     console.error('Error creating workout:', err.message);

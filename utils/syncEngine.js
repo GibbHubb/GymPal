@@ -6,9 +6,11 @@ const MAX_ATTEMPTS = 5;
 export async function runSync(apiBaseUrl, authToken) {
     const queue = await getQueue();
     const pending = queue.filter(q => q.status === 'pending' || q.status === 'retrying');
+    // G9 — aggregate PB detections across all synced items
+    const personalBests = [];
     for (const item of pending) {
         try {
-            const res = await fetch(`${apiBaseUrl}/api/workout-logs`, {
+            const res = await fetch(`${apiBaseUrl}/api/workouts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -17,6 +19,13 @@ export async function runSync(apiBaseUrl, authToken) {
                 body: JSON.stringify(item.payload),
             });
             if (res.ok || res.status === 409) {
+                // Parse PB data from response (safe-fail if body is empty/non-JSON)
+                try {
+                    const body = await res.json();
+                    if (body && Array.isArray(body.personal_bests) && body.personal_bests.length > 0) {
+                        personalBests.push(...body.personal_bests);
+                    }
+                } catch (_) { /* ignore */ }
                 await removeItem(item.id);
             } else {
                 const newAttempts = (item.attempts || 0) + 1;
@@ -35,6 +44,7 @@ export async function runSync(apiBaseUrl, authToken) {
             });
         }
     }
+    return { personalBests };
 }
 
 let _unsubscribe = null;

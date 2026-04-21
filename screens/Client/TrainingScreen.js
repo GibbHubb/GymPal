@@ -26,6 +26,7 @@ const TrainingScreen = ({ navigation }) => {
   const [filteredExercises, setFilteredExercises] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExercise, setSelectedExercise] = useState(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState(null);
   const [sets, setSets] = useState('');
   const [reps, setReps] = useState('');
   const [weight, setWeight] = useState('');
@@ -34,6 +35,8 @@ const TrainingScreen = ({ navigation }) => {
   // G3 — offline sync state
   const [syncStatus, setSyncStatus] = useState(null); // null | 'pending' | 'synced' | 'failed'
   const [pendingCount, setPendingCount] = useState(0);
+  // G9 — personal best banner state
+  const [personalBests, setPersonalBests] = useState([]);
   // G1 — live session state
   const [liveSessionActive, setLiveSessionActive] = useState(false);
   const [liveExercises, setLiveExercises] = useState([]);
@@ -122,6 +125,8 @@ const TrainingScreen = ({ navigation }) => {
   const handleSelectExercise = (exercise) => {
     console.log("Exercise Selected:", exercise);
     setSelectedExercise(exercise.name || exercise); // If it's an object, use `name`
+    // G9 — capture exercise_id so the backend can run PB detection
+    setSelectedExerciseId(exercise.exercise_id || null);
     setSearchQuery(exercise.name || exercise);
     setFilteredExercises([]); // Clear search results
   };
@@ -134,11 +139,12 @@ const TrainingScreen = ({ navigation }) => {
         return;
     }
 
-    const newExercise = { 
-        name: selectedExercise, 
-        sets: parseInt(sets), 
-        reps: parseInt(reps), 
-        weight: weight || 'Bodyweight' 
+    const newExercise = {
+        name: selectedExercise,
+        exercise_id: selectedExerciseId, // G9 — needed for PB detection
+        sets: parseInt(sets),
+        reps: parseInt(reps),
+        weight: weight || 'Bodyweight'
     };
 
     console.log("✅ New Exercise Added:", newExercise);
@@ -146,6 +152,7 @@ const TrainingScreen = ({ navigation }) => {
     setExercises(prevExercises => [...prevExercises, newExercise]);
 
     setSelectedExercise('');
+    setSelectedExerciseId(null);
     setSearchQuery('');
     setSets('');
     setReps('');
@@ -171,17 +178,22 @@ const finishWorkout = async () => {
       }
 
       const entryId = uuidv4();
+      // G9 — payload shape matches backend POST /api/workouts (createWorkout):
+      //   exercises[{ exercise_id, sets: [{weight, reps, rir}] }]
       const workoutPayload = {
-          user_id: parseInt(user_id),
           name: null,
           notes: null,
-          exercises: exercises.map(exercise => ({
-              name: exercise.name,
-              sets: parseInt(exercise.sets),
-              reps: parseInt(exercise.reps),
-              weight: parseFloat(exercise.weight) || 0,
-          })),
           client_id: entryId,
+          exercises: exercises
+            .filter((e) => e.exercise_id)
+            .map((exercise) => {
+                const setCount = parseInt(exercise.sets) || 1;
+                const reps = parseInt(exercise.reps) || 0;
+                const weight = parseFloat(exercise.weight) || 0;
+                // Backend iterates `sets` array, inserting one row per set entry.
+                const setArr = Array.from({ length: setCount }, () => ({ weight, reps, rir: null }));
+                return { exercise_id: exercise.exercise_id, sets: setArr };
+            }),
       };
 
       // G3 — enqueue for offline-first; always persists before attempting network
@@ -195,10 +207,13 @@ const finishWorkout = async () => {
       );
       setExercises([]);
 
-      // Try to sync immediately if online
+      // Try to sync immediately if online. G9 — surface any PBs detected by server.
       try {
-          await runSync(SERVER_URL, authToken);
+          const result = await runSync(SERVER_URL, authToken);
           setSyncStatus('synced');
+          if (result && Array.isArray(result.personalBests) && result.personalBests.length > 0) {
+              setPersonalBests(result.personalBests);
+          }
       } catch {
           setSyncStatus('failed');
       }
@@ -217,6 +232,21 @@ const finishWorkout = async () => {
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>← Back</Text>
       </TouchableOpacity>
+
+      {/* G9 — Personal Best celebration banner */}
+      {personalBests.length > 0 && (
+        <View style={styles.pbBanner}>
+          <Text style={styles.pbBannerTitle}>🏆 NEW PERSONAL BEST!</Text>
+          {personalBests.map((pb, i) => (
+            <Text key={i} style={styles.pbBannerItem}>
+              {pb.exercise_name}: volume {pb.new_volume} (prev best {Math.round(pb.previous_best)})
+            </Text>
+          ))}
+          <TouchableOpacity onPress={() => setPersonalBests([])} style={styles.pbBannerDismiss}>
+            <Text style={styles.pbBannerDismissText}>Dismiss</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* G3 — Pending sync badge */}
       {pendingCount > 0 && (
@@ -351,6 +381,26 @@ const styles = StyleSheet.create({
   searchItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: '#ddd' },
   searchText: { fontSize: 16 },
   summaryText: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A', marginTop: 5 },
+  // G9 — PB banner styles
+  pbBanner: {
+    width: '100%',
+    backgroundColor: '#ffd700',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#f7bf0b',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  pbBannerTitle: { color: '#1A1A1A', fontWeight: '900', fontSize: 16, marginBottom: 6, letterSpacing: 1 },
+  pbBannerItem: { color: '#1A1A1A', fontWeight: '600', fontSize: 13, marginBottom: 2, textAlign: 'center' },
+  pbBannerDismiss: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, backgroundColor: '#1A1A1A', borderRadius: 6 },
+  pbBannerDismissText: { color: '#ffd700', fontWeight: '700', fontSize: 12 },
 });
 
 export default TrainingScreen;
