@@ -402,6 +402,20 @@ export const deleteTemplate = async (id) => {
 };
 
 /**
+ * G11 — Trainer client dashboard stats
+ */
+export const getClientStats = async () => {
+  const api = await createAuthApiInstance();
+  try {
+    const response = await api.get('/workouts/trainer/client-stats');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching client stats:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
  * G10 — Body metrics (client-logged weight / body-fat %)
  */
 export const postBodyMetric = async ({ weight, body_fat_pct, notes, logged_at }) => {

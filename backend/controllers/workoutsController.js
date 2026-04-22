@@ -451,6 +451,93 @@ const getSuggestedWeights = async (req, res) => {
 
 
 
+/**
+ * G11 — Trainer client dashboard.
+ * Returns per-client stats for everyone with role='client':
+ *   user_id, username, last_session, total_sessions, streak, inactive (bool)
+ * Streak = consecutive ISO weeks with >= 1 session (look back up to 52 weeks).
+ * Inactive = no workout logged in >= 7 days (or ever).
+ * Sorted: inactive first (oldest last_session first), then active clients by
+ * most recent last_session desc.
+ */
+const getClientStats = async (req, res) => {
+  const { role } = req.user;
+  const isTrainer = role === 'pt' || role === 'masterPt' || role === 'trainer';
+  if (!isTrainer) {
+    return res.status(403).json({ message: 'Trainer role required.' });
+  }
+
+  try {
+    // 1) All clients with their aggregate workout stats in one query
+    const { rows: clients } = await db.query(
+      `SELECT u.user_id,
+              u.username,
+              MAX(w.date)                AS last_session,
+              COUNT(w.workout_id)::int   AS total_sessions
+         FROM users u
+    LEFT JOIN workouts w ON w.user_id = u.user_id
+        WHERE u.role = 'client' OR u.role = 'user'
+     GROUP BY u.user_id, u.username`
+    );
+
+    // 2) For each client, compute streak (JS-side — cheap for up to ~50 clients)
+    const results = await Promise.all(
+      clients.map(async (c) => {
+        let streak = 0;
+        if (c.last_session) {
+          for (let weeksAgo = 0; weeksAgo < 52; weeksAgo++) {
+            const { rows } = await db.query(
+              `SELECT COUNT(*)::int AS cnt
+                 FROM workouts
+                WHERE user_id = $1
+                  AND date >= (NOW() - (($2 + 1) || ' weeks')::interval)
+                  AND date <  (NOW() - ($2 || ' weeks')::interval)`,
+              [c.user_id, weeksAgo]
+            );
+            if (rows[0].cnt > 0) streak++;
+            else break;
+          }
+        }
+
+        const lastSessionDate = c.last_session ? new Date(c.last_session) : null;
+        const daysSince = lastSessionDate
+          ? Math.floor((Date.now() - lastSessionDate.getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        const inactive = daysSince === null || daysSince >= 7;
+
+        return {
+          user_id: c.user_id,
+          username: c.username,
+          last_session: c.last_session,
+          total_sessions: c.total_sessions || 0,
+          streak,
+          days_since: daysSince,
+          inactive,
+        };
+      })
+    );
+
+    // 3) Sort: inactive (oldest or never first) before active (most recent first)
+    results.sort((a, b) => {
+      if (a.inactive !== b.inactive) return a.inactive ? -1 : 1;
+      if (a.inactive) {
+        // Both inactive — never-logged first, then oldest last_session first
+        if (!a.last_session && b.last_session) return -1;
+        if (a.last_session && !b.last_session) return 1;
+        if (!a.last_session && !b.last_session) return 0;
+        return new Date(a.last_session) - new Date(b.last_session);
+      }
+      // Both active — most recent first
+      return new Date(b.last_session) - new Date(a.last_session);
+    });
+
+    res.status(200).json(results);
+  } catch (err) {
+    console.error('[G11] Error fetching client stats:', err.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getWorkouts,
   createWorkout,
@@ -461,5 +548,6 @@ module.exports = {
   getAssignedWorkouts,
   createAndAssignWorkout,
   getExerciseProgress,
-  getSuggestedWeights
+  getSuggestedWeights,
+  getClientStats,
 };

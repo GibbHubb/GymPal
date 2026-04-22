@@ -14,6 +14,7 @@ import TrainingScreen from './Client/TrainingScreen';
 import ProgressScreen from './Client/ProgressScreen';
 import ClientOverview from './Trainer/ClientOverview';
 import ProfileScreen from './Trainer/ProfileScreen';
+import TrainerDashboard from './Trainer/TrainerDashboard';
 
 const Stack = createStackNavigator();
 
@@ -44,6 +45,7 @@ export default function AppNavigator({ isAuthenticated, userRole, refreshAuth, i
             <Stack.Screen name="TVScreen" component={TVScreen} />
             <Stack.Screen name="ClientOverview" component={ClientOverview} />
             <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+            <Stack.Screen name="TrainerDashboard" component={TrainerDashboard} />
           </>
         )
       ) : null}
