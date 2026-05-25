@@ -15,6 +15,9 @@ import ProgressScreen from './Client/ProgressScreen';
 import ClientOverview from './Trainer/ClientOverview';
 import ProfileScreen from './Trainer/ProfileScreen';
 import TrainerDashboard from './Trainer/TrainerDashboard';
+import ClientsManagementScreen from './Trainer/ClientsManagementScreen';
+import ProgramsListScreen from './Trainer/ProgramsListScreen';
+import ProgramBuilderScreen from './Trainer/ProgramBuilderScreen';
 
 const Stack = createStackNavigator();
 
@@ -46,6 +49,9 @@ export default function AppNavigator({ isAuthenticated, userRole, refreshAuth, i
             <Stack.Screen name="ClientOverview" component={ClientOverview} />
             <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
             <Stack.Screen name="TrainerDashboard" component={TrainerDashboard} />
+            <Stack.Screen name="ClientsManagement" component={ClientsManagementScreen} />
+            <Stack.Screen name="ProgramsList" component={ProgramsListScreen} />
+            <Stack.Screen name="ProgramBuilder" component={ProgramBuilderScreen} />
           </>
         )
       ) : null}

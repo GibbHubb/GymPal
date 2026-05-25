@@ -51,6 +51,16 @@ export default function TrainerHome({ navigation }) {
                 style={styles.actionBtn}
               />
               <CustomButton
+                title="🤝 Manage Clients"
+                onPress={() => navigation.navigate('ClientsManagement')}
+                style={styles.actionBtn}
+              />
+              <CustomButton
+                title="📅 Programs"
+                onPress={() => navigation.navigate('ProgramsList')}
+                style={styles.actionBtn}
+              />
+              <CustomButton
                 title="📺 Enter Streaming Mode"
                 onPress={() => navigation.navigate('TVScreen')}
                 style={styles.actionBtn}

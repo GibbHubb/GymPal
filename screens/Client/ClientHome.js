@@ -4,20 +4,27 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme } from '../../constants/Theme';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
+import VolumeHeatmap from '../../components/VolumeHeatmap';
 import { getPendingCount } from '../../utils/syncQueue';
+import { fetchTodayProgram } from '../../utils/api';
 
 
 const ClientHome = ({ navigation }) => {
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  // G16 — today's-session resolver
+  const [today, setToday] = useState(null);
 
   useEffect(() => {
-    const loadCount = async () => {
+    const refresh = async () => {
       const count = await getPendingCount();
       setPendingSyncCount(count);
+      try {
+        const t = await fetchTodayProgram();
+        setToday(t);
+      } catch { /* silent — banner just stays hidden */ }
     };
-    loadCount();
-    // Refresh count when screen comes back into focus
-    const unsubscribe = navigation.addListener('focus', loadCount);
+    refresh();
+    const unsubscribe = navigation.addListener('focus', refresh);
     return unsubscribe;
   }, [navigation]);
 
@@ -32,7 +39,7 @@ const ClientHome = ({ navigation }) => {
   };
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper scrollable={true}>
       {/* Logout Header */}
       <View style={styles.headerContainer}>
          <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
@@ -44,16 +51,34 @@ const ClientHome = ({ navigation }) => {
         {/* GymPal Logo */}
         <Text style={styles.title}>Welcome Back!</Text>
 
+        {/* G16 — today's-session banner */}
+        {today?.active && today?.template_name && (
+          <TouchableOpacity
+            style={styles.todayBanner}
+            onPress={() => navigation.navigate('TrainingScreen')}
+          >
+            <Text style={styles.todayLabel}>📅 TODAY · {today.program_name} · W{today.week}/{today.total_weeks}</Text>
+            <Text style={styles.todayTemplate}>{today.template_name}</Text>
+            <Text style={styles.todayCta}>Start session →</Text>
+          </TouchableOpacity>
+        )}
+        {today?.active && today?.rest_day && (
+          <View style={[styles.todayBanner, styles.todayBannerRest]}>
+            <Text style={styles.todayLabel}>📅 TODAY · {today.program_name} · W{today.week}/{today.total_weeks}</Text>
+            <Text style={styles.todayTemplate}>Rest day — check back tomorrow</Text>
+          </View>
+        )}
+
         <View style={styles.buttonContainer}>
-          <CustomButton 
-            title="📋 Intake" 
-            onPress={() => navigation.navigate('IntakeScreen')} 
-            style={styles.actionBtn} 
+          <CustomButton
+            title="📋 Intake"
+            onPress={() => navigation.navigate('IntakeScreen')}
+            style={styles.actionBtn}
           />
-          <CustomButton 
-            title="🌿 Lifestyle" 
-            onPress={() => navigation.navigate('LifestyleScreen')} 
-            style={styles.actionBtn} 
+          <CustomButton
+            title="🌿 Lifestyle"
+            onPress={() => navigation.navigate('LifestyleScreen')}
+            style={styles.actionBtn}
           />
           <View style={styles.trainingBtnWrapper}>
             <CustomButton
@@ -67,12 +92,15 @@ const ClientHome = ({ navigation }) => {
               </View>
             )}
           </View>
-          <CustomButton 
-            title="📊 Progress" 
-            onPress={() => navigation.navigate('ProgressScreen')} 
-            style={styles.actionBtn} 
+          <CustomButton
+            title="📊 Progress"
+            onPress={() => navigation.navigate('ProgressScreen')}
+            style={styles.actionBtn}
           />
         </View>
+
+        {/* G15 — weekly volume heatmap, sits below the action buttons */}
+        <VolumeHeatmap />
       </View>
     </ScreenWrapper>
   );
@@ -143,6 +171,40 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 11,
     fontWeight: 'bold',
+  },
+  // G16 — today's-session banner
+  todayBanner: {
+    width: '100%',
+    maxWidth: 400,
+    marginBottom: Theme.spacing.l,
+    padding: Theme.spacing.m,
+    borderRadius: Theme.borderRadius?.l || 12,
+    backgroundColor: 'rgba(246, 176, 0, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(246, 176, 0, 0.35)',
+  },
+  todayBannerRest: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  todayLabel: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  todayTemplate: {
+    color: Theme.colors.text,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  todayCta: {
+    color: Theme.colors.primary,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });
 

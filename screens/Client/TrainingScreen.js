@@ -8,7 +8,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  ScrollView
+  ScrollView,
+  Vibration,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { io } from 'socket.io-client';
@@ -17,6 +18,9 @@ import 'react-native-get-random-values'; // required for uuid in React Native
 import { fetchExercises } from '../../utils/api';
 import { enqueue, getPendingCount } from '../../utils/syncQueue';
 import { runSync } from '../../utils/syncEngine';
+// G14 — between-batch rest timer
+import { useRestTimer } from '../../hooks/useRestTimer';
+import RestTimer from '../../components/RestTimer';
 
 const SERVER_URL = 'https://gympalbackend-production.up.railway.app';
 
@@ -127,9 +131,31 @@ const TrainingScreen = ({ navigation }) => {
     setSelectedExercise(exercise.name || exercise); // If it's an object, use `name`
     // G9 — capture exercise_id so the backend can run PB detection
     setSelectedExerciseId(exercise.exercise_id || null);
+    // G13 — capture per-exercise rest default so G14's timer fires for the
+    // right duration; falls back to the global 90s when picking from a
+    // stale row that pre-dates the library hardening.
+    setSelectedExerciseRest(
+      typeof exercise.default_rest_seconds === 'number' && exercise.default_rest_seconds > 0
+        ? exercise.default_rest_seconds
+        : 90
+    );
     setSearchQuery(exercise.name || exercise);
     setFilteredExercises([]); // Clear search results
   };
+
+  // G14 — rest-timer state. Foreground-only countdown; vibrates briefly
+  // at zero. Default duration sourced from the picked exercise (G13);
+  // falls back to 90s for free-text picks.
+  const restTimer = useRestTimer();
+  const [selectedExerciseRest, setSelectedExerciseRest] = useState(90);
+
+  // Vibrate exactly once on the fire-edge (justFired flips back to false
+  // on dismiss or next start).
+  useEffect(() => {
+    if (restTimer.justFired) {
+      try { Vibration.vibrate([0, 120, 60, 200]); } catch { /* device may not support */ }
+    }
+  }, [restTimer.justFired]);
 
   const addExercise = () => {
     console.log("🔹 Adding Exercise:", { selectedExercise, sets, reps, weight });
@@ -151,12 +177,19 @@ const TrainingScreen = ({ navigation }) => {
 
     setExercises(prevExercises => [...prevExercises, newExercise]);
 
+    // Capture rest seconds BEFORE clearing the picker state below.
+    const restForThisSet = selectedExerciseRest;
+
     setSelectedExercise('');
     setSelectedExerciseId(null);
+    setSelectedExerciseRest(90);
     setSearchQuery('');
     setSets('');
     setReps('');
     setWeight('');
+
+    // G14 — kick off the between-batch rest timer (G13 — per-exercise duration)
+    restTimer.start(restForThisSet);
 };
 
 const finishWorkout = async () => {
@@ -228,6 +261,18 @@ const finishWorkout = async () => {
 };
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* G14 — Rest timer overlay (foreground-only, fires after Add Exercise) */}
+      {restTimer.isActive && (
+        <RestTimer
+          remaining={restTimer.remaining}
+          totalSeconds={restTimer.totalSeconds}
+          justFired={restTimer.justFired}
+          onAdjust={restTimer.adjust}
+          onSkip={restTimer.skip}
+          onDismiss={restTimer.dismiss}
+        />
+      )}
+
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>← Back</Text>

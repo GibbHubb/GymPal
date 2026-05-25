@@ -551,3 +551,106 @@ export const searchExercises = async (query) => {
     return [];
   }
 };
+
+/* ---------------------------------------------------------------------------
+ * G12 — Trainer-client pivot (a trainer's roster of clients).
+ * ------------------------------------------------------------------------- */
+
+export const fetchTrainerClients = async (status = 'active') => {
+  const api = await createAuthApiInstance();
+  try {
+    const response = await api.get(`/trainer-clients?status=${status}`);
+    return response.data;
+  } catch (error) {
+    console.error('❌ fetchTrainerClients:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const addTrainerClient = async (username, isPrimary = false) => {
+  const api = await createAuthApiInstance();
+  try {
+    const response = await api.post('/trainer-clients', {
+      username,
+      is_primary: isPrimary,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ addTrainerClient:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const updateTrainerClient = async (linkId, payload) => {
+  const api = await createAuthApiInstance();
+  try {
+    const response = await api.patch(`/trainer-clients/${linkId}`, payload);
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateTrainerClient:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const deleteTrainerClient = async (linkId) => {
+  const api = await createAuthApiInstance();
+  try {
+    await api.delete(`/trainer-clients/${linkId}`);
+    return true;
+  } catch (error) {
+    console.error('❌ deleteTrainerClient:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/* ---------------------------------------------------------------------------
+ * G16 — Trainer programs (multi-week template stacks)
+ * ------------------------------------------------------------------------- */
+
+export const fetchPrograms = async () => {
+  const api = await createAuthApiInstance();
+  const { data } = await api.get('/programs/');
+  return Array.isArray(data) ? data : [];
+};
+
+export const createProgram = async ({ name, total_weeks, description }) => {
+  const api = await createAuthApiInstance();
+  const { data } = await api.post('/programs/', { name, total_weeks, description });
+  return data;
+};
+
+export const fetchProgramDetail = async (programId) => {
+  const api = await createAuthApiInstance();
+  const { data } = await api.get(`/programs/${programId}`);
+  return data;
+};
+
+export const deleteProgram = async (programId) => {
+  const api = await createAuthApiInstance();
+  await api.delete(`/programs/${programId}`);
+};
+
+/** body: { week_number, day_of_week, template_id (or null to clear), notes? } */
+export const upsertProgramDay = async (programId, payload) => {
+  const api = await createAuthApiInstance();
+  const { data } = await api.put(`/programs/${programId}/days`, payload);
+  return data;
+};
+
+export const assignProgram = async (programId, { client_id, start_date }) => {
+  const api = await createAuthApiInstance();
+  const { data } = await api.post(`/programs/${programId}/assign`, { client_id, start_date });
+  return data;
+};
+
+/** Calling-client's today's-session resolver. Returns { active, ... }. */
+export const fetchTodayProgram = async () => {
+  const api = await createAuthApiInstance();
+  try {
+    const { data } = await api.get('/programs/today');
+    return data;
+  } catch (error) {
+    console.warn('[G16] today fetch failed:', error.response?.data || error.message);
+    return { active: false };
+  }
+};

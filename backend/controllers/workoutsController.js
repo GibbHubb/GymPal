@@ -467,17 +467,22 @@ const getClientStats = async (req, res) => {
     return res.status(403).json({ message: 'Trainer role required.' });
   }
 
+  const trainerId = req.user.user_id;
+
   try {
-    // 1) All clients with their aggregate workout stats in one query
+    // G12 — scope to *this* trainer's active clients via trainer_clients pivot.
     const { rows: clients } = await db.query(
       `SELECT u.user_id,
               u.username,
               MAX(w.date)                AS last_session,
               COUNT(w.workout_id)::int   AS total_sessions
-         FROM users u
-    LEFT JOIN workouts w ON w.user_id = u.user_id
-        WHERE u.role = 'client' OR u.role = 'user'
-     GROUP BY u.user_id, u.username`
+         FROM trainer_clients tc
+         JOIN users u           ON u.user_id   = tc.client_id
+    LEFT JOIN workouts w        ON w.user_id   = u.user_id
+        WHERE tc.trainer_id = $1
+          AND tc.status     = 'active'
+     GROUP BY u.user_id, u.username`,
+      [trainerId],
     );
 
     // 2) For each client, compute streak (JS-side — cheap for up to ~50 clients)
@@ -538,6 +543,38 @@ const getClientStats = async (req, res) => {
   }
 };
 
+/**
+ * G15 — Weekly volume heatmap.
+ * Returns one row per day (UTC) the user logged any work over the last
+ * `weeks * 7` days, with total sets + distinct-exercise count per day.
+ * Empty days are NOT included (frontend skeleton fills the grid).
+ */
+const getVolumeHeatmap = async (req, res) => {
+  const userId = req.user.user_id;
+  const weeks = Math.max(1, Math.min(104, parseInt(req.query.weeks, 10) || 52));
+  const sinceDays = weeks * 7;
+
+  try {
+    const { rows } = await db.query(
+      `SELECT DATE(w.date)                 AS day,
+              COALESCE(SUM(we.sets), 0)::int  AS sets,
+              COUNT(DISTINCT we.exercise_id)::int AS exercise_count
+         FROM workouts w
+    LEFT JOIN workout_exercises we ON we.workout_id = w.workout_id
+        WHERE w.user_id = $1
+          AND w.date >= (NOW() - ($2 || ' days')::interval)
+     GROUP BY DATE(w.date)
+     ORDER BY day`,
+      [userId, sinceDays]
+    );
+    res.status(200).json({ weeks, days: rows });
+  } catch (err) {
+    console.error('[G15] Error fetching heatmap:', err.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
 module.exports = {
   getWorkouts,
   createWorkout,
@@ -547,6 +584,7 @@ module.exports = {
   getWorkoutsPerWeek,
   getAssignedWorkouts,
   createAndAssignWorkout,
+  getVolumeHeatmap,
   getExerciseProgress,
   getSuggestedWeights,
   getClientStats,

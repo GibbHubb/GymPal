@@ -8,6 +8,7 @@ const {
     getExerciseProgress,
     getSuggestedWeights, // Add new function here
     getClientStats,      // G11 — trainer dashboard
+    getVolumeHeatmap,    // G15 — weekly volume heatmap
 } = require('../controllers/workoutsController');
 const { authenticateToken } = require('../controllers/usersController');
 
@@ -19,6 +20,8 @@ router.post('/', authenticateToken, createWorkout);
 router.get('/history', authenticateToken, getWorkoutHistory);
 // G11 — must register before /:id so it isn't shadowed
 router.get('/trainer/client-stats', authenticateToken, getClientStats);
+// G15 — must register before /:id so it isn't shadowed
+router.get('/heatmap', authenticateToken, getVolumeHeatmap);
 router.get('/assigned', authenticateToken, getAssignedWorkouts);
 router.get('/progress/:exerciseId', authenticateToken, getExerciseProgress);
 router.get('/suggested-weights/:workoutId', authenticateToken, getSuggestedWeights); // New route
