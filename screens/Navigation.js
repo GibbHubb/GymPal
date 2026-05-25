@@ -18,6 +18,7 @@ import TrainerDashboard from './Trainer/TrainerDashboard';
 import ClientsManagementScreen from './Trainer/ClientsManagementScreen';
 import ProgramsListScreen from './Trainer/ProgramsListScreen';
 import ProgramBuilderScreen from './Trainer/ProgramBuilderScreen';
+import LeaderboardScreen from './Client/LeaderboardScreen';  // G31
 
 const Stack = createStackNavigator();
 
@@ -38,6 +39,7 @@ export default function AppNavigator({ isAuthenticated, userRole, refreshAuth, i
             <Stack.Screen name="LifestyleScreen" component={LifestyleScreen} />
             <Stack.Screen name="TrainingScreen" component={TrainingScreen} />
             <Stack.Screen name="ProgressScreen" component={ProgressScreen} />
+            <Stack.Screen name="LeaderboardScreen" component={LeaderboardScreen} />
           </>
         ) : (
           <>

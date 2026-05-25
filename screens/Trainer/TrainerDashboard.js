@@ -14,6 +14,15 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomHeader from '../../components/CustomHeader';
 import GlassCard from '../../components/GlassCard';
 import { getClientStats } from '../../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// G28 — RAG colors for the compliance chip
+const COMPLIANCE_COLORS = {
+  green:   { bg: '#dcfce7', fg: '#166534' },
+  amber:   { bg: '#fef3c7', fg: '#92400e' },
+  red:     { bg: '#fee2e2', fg: '#991b1b' },
+  no_plan: { bg: '#e2e8f0', fg: '#475569' },
+};
 
 /**
  * G11 — Trainer client dashboard
@@ -25,6 +34,7 @@ import { getClientStats } from '../../utils/api';
 export default function TrainerDashboard() {
   const navigation = useNavigation();
   const [stats, setStats] = useState([]);
+  const [compliance, setCompliance] = useState({});  // G28 — { [user_id]: {status, ratio, ...} }
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -34,6 +44,24 @@ export default function TrainerDashboard() {
       setError(null);
       const data = await getClientStats();
       setStats(Array.isArray(data) ? data : []);
+      // G28 — fan out a compliance fetch alongside the stats so the
+      // card render has both numbers in one paint.
+      try {
+        const token = await AsyncStorage.getItem('token');
+        const res = await fetch(
+          'https://gympalbackend-production.up.railway.app/api/trainer-clients/compliance',
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (res.ok) {
+          const body = await res.json();
+          const map = {};
+          for (const c of body.clients || []) map[c.user_id] = c;
+          setCompliance(map);
+        }
+      } catch (e) {
+        // Non-fatal: stats still render, compliance just stays empty.
+        console.warn('[G28] compliance fetch failed:', e.message);
+      }
     } catch (err) {
       console.error('Error loading client stats:', err);
       setError('Failed to load client stats.');
@@ -75,6 +103,25 @@ export default function TrainerDashboard() {
       <GlassCard style={[styles.card, item.inactive && styles.cardInactive]}>
         <View style={styles.cardHeader}>
           <Text style={styles.username} numberOfLines={1}>{item.username}</Text>
+          {/* G28 — 7-day compliance RAG chip */}
+          {(() => {
+            const c = compliance[item.user_id];
+            if (!c) return null;
+            const colors = COMPLIANCE_COLORS[c.status] || COMPLIANCE_COLORS.no_plan;
+            const label = c.status === 'no_plan'
+              ? 'NO PLAN'
+              : `${c.logged}/${c.assigned}`;
+            return (
+              <View style={{
+                backgroundColor: colors.bg, paddingHorizontal: 8, paddingVertical: 3,
+                borderRadius: 4, marginLeft: 8,
+              }}>
+                <Text style={{ color: colors.fg, fontWeight: '900', fontSize: 10, letterSpacing: 0.5 }}>
+                  {label}
+                </Text>
+              </View>
+            );
+          })()}
           {item.inactive && (
             <View style={styles.inactiveBadge}>
               <Text style={styles.inactiveBadgeText}>INACTIVE</Text>

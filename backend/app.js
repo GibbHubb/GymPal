@@ -60,6 +60,7 @@ app.use('/api/templates', require('./routes/workoutTemplatesRoutes'));
 app.use('/api/body-metrics', require('./routes/bodyMetricsRoutes'));
 app.use('/api/trainer-clients', require('./routes/trainerClientsRoutes'));
 app.use('/api/programs', require('./routes/programsRoutes'));
+app.use('/api/leaderboard', require('./routes/leaderboardRoutes'));  // G31
 
 // ✅ Catch-all for undefined routes
 app.use((req, res, next) => {

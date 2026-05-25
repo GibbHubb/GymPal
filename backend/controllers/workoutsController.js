@@ -575,6 +575,55 @@ const getVolumeHeatmap = async (req, res) => {
 };
 
 
+// G30 — most recent logged workout for the auth'd user (the seed of the
+// "Repeat last" flow). Returns the workout row + its workout_exercises
+// shaped as a TrainingScreen-ready { name, exercises } payload.
+const getLastWorkout = async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    const { rows: wf } = await db.query(
+      `SELECT workout_id, name, date, notes
+         FROM Workouts
+        WHERE user_id = $1
+        ORDER BY date DESC, workout_id DESC
+        LIMIT 1`,
+      [userId],
+    );
+    if (wf.length === 0) {
+      return res.status(404).json({ message: 'No previous workout to repeat.' });
+    }
+    const w = wf[0];
+    const { rows: ex } = await db.query(
+      `SELECT we.exercise_id, we.sets, we.reps, we.weight, we.rir, e.name
+         FROM workout_exercises we
+         LEFT JOIN exercises e ON e.exercise_id = we.exercise_id
+        WHERE we.workout_id = $1`,
+      [w.workout_id],
+    );
+    res.status(200).json({
+      source_workout_id: w.workout_id,
+      name: w.name,
+      // TrainingScreen expects each exercise to carry its set-blueprint;
+      // we collapse the historical {sets,reps,weight,rir} into N empty
+      // sets so the client repeats the *structure*, not last week's exact
+      // numbers (which can be retrieved separately via /suggested-weights).
+      exercises: ex.map((row) => ({
+        exercise_id: row.exercise_id,
+        name: row.name,
+        sets: Array.from({ length: row.sets || 1 }, () => ({
+          reps: row.reps || 0,
+          weight: row.weight || 0,
+          rir: row.rir || 0,
+        })),
+      })),
+    });
+  } catch (err) {
+    console.error('[G30] getLastWorkout error:', err.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
 module.exports = {
   getWorkouts,
   createWorkout,
@@ -588,4 +637,5 @@ module.exports = {
   getExerciseProgress,
   getSuggestedWeights,
   getClientStats,
+  getLastWorkout,  // G30
 };

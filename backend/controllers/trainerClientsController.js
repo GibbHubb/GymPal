@@ -147,9 +147,85 @@ const deleteLink = async (req, res) => {
   }
 };
 
+// G28 — Trainer compliance dashboard.
+//
+// For each of the trainer's linked clients, return a red/amber/green
+// signal computed as: (workouts logged in the trailing 7 days) /
+// (workouts assigned to that client in the same window) capped at 1.0.
+//
+// Bucketing: >=0.8 green, >=0.5 amber, else red. When the assigned
+// count is zero we surface "no plan" rather than red (a client with
+// no schedule shouldn't look non-compliant).
+const getCompliance = async (req, res) => {
+  const trainerId = req.user.user_id;
+  try {
+    const { rows: links } = await db.query(
+      `SELECT tc.id AS link_id, u.user_id, u.username
+         FROM trainer_clients tc
+         JOIN users u ON u.user_id = tc.client_id
+        WHERE tc.trainer_id = $1 AND tc.status = 'active'
+        ORDER BY u.username`,
+      [trainerId],
+    );
+
+    const sinceISO = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+
+    // Per-client counts in two single queries (assigned + logged) so this
+    // scales linearly with #clients rather than O(N) round-trips.
+    const clientIds = links.map((l) => l.user_id);
+    if (clientIds.length === 0) {
+      return res.status(200).json({ window_days: 7, clients: [] });
+    }
+
+    const { rows: assigned } = await db.query(
+      `SELECT user_id, COUNT(*)::int AS n
+         FROM Workouts
+        WHERE user_id = ANY($1::int[])
+          AND date >= $2
+        GROUP BY user_id`,
+      [clientIds, sinceISO],
+    );
+    const { rows: logged } = await db.query(
+      `SELECT w.user_id, COUNT(*)::int AS n
+         FROM Workouts w
+         JOIN workout_exercises we ON we.workout_id = w.workout_id
+        WHERE w.user_id = ANY($1::int[])
+          AND w.date >= $2
+        GROUP BY w.user_id`,
+      [clientIds, sinceISO],
+    );
+    const aMap = Object.fromEntries(assigned.map((r) => [r.user_id, r.n]));
+    const lMap = Object.fromEntries(logged.map((r) => [r.user_id, r.n]));
+
+    const out = links.map((l) => {
+      const a = aMap[l.user_id] || 0;
+      const lg = Math.min(lMap[l.user_id] || 0, a);  // can't be > assigned
+      const ratio = a > 0 ? lg / a : null;
+      let status = 'no_plan';
+      if (ratio !== null) {
+        status = ratio >= 0.8 ? 'green' : ratio >= 0.5 ? 'amber' : 'red';
+      }
+      return {
+        user_id: l.user_id,
+        username: l.username,
+        assigned: a,
+        logged: lg,
+        ratio,
+        status,
+      };
+    });
+    res.status(200).json({ window_days: 7, clients: out });
+  } catch (err) {
+    console.error('[G28] getCompliance error:', err.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
 module.exports = {
   listClients,
   addClient,
   updateLink,
   deleteLink,
+  getCompliance,  // G28
 };

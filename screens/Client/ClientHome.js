@@ -7,6 +7,7 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import VolumeHeatmap from '../../components/VolumeHeatmap';
 import { getPendingCount } from '../../utils/syncQueue';
 import { fetchTodayProgram } from '../../utils/api';
+import { useDeloadSignal } from '../../hooks/useDeloadSignal';  // G29
 
 
 const ClientHome = ({ navigation }) => {
@@ -92,12 +93,44 @@ const ClientHome = ({ navigation }) => {
               </View>
             )}
           </View>
+          {/* G30 — repeat the most recent logged workout */}
+          <CustomButton
+            title="🔁 Repeat last"
+            onPress={async () => {
+              try {
+                const token = await AsyncStorage.getItem('token');
+                const res = await fetch(
+                  'https://gympalbackend-production.up.railway.app/api/workouts/last',
+                  { headers: { Authorization: `Bearer ${token}` } },
+                );
+                if (res.status === 404) {
+                  Alert.alert('No previous workout', 'Log at least one workout first.');
+                  return;
+                }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const last = await res.json();
+                navigation.navigate('TrainingScreen', { prefill: last });
+              } catch (err) {
+                Alert.alert('Could not load', String(err.message || err));
+              }
+            }}
+            style={styles.actionBtn}
+          />
+          {/* G31 — opt-in weekly leaderboard */}
+          <CustomButton
+            title="🏆 Leaderboard"
+            onPress={() => navigation.navigate('LeaderboardScreen')}
+            style={styles.actionBtn}
+          />
           <CustomButton
             title="📊 Progress"
             onPress={() => navigation.navigate('ProgressScreen')}
             style={styles.actionBtn}
           />
         </View>
+
+        {/* G29 — deload banner shown when 4 weeks of rising volume detected */}
+        <DeloadBanner />
 
         {/* G15 — weekly volume heatmap, sits below the action buttons */}
         <VolumeHeatmap />
@@ -207,5 +240,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+
+// G29 — Small inline banner; null when no signal.
+function DeloadBanner() {
+  const { recommend, reason } = useDeloadSignal();
+  if (!recommend) return null;
+  return (
+    <View
+      style={{
+        marginTop: 12, padding: 12,
+        backgroundColor: '#fef3c7', borderRadius: 8,
+        borderWidth: 1, borderColor: '#f59e0b',
+      }}
+    >
+      <Text style={{ fontWeight: '600', color: '#92400e', marginBottom: 4 }}>
+        🛌 Consider a deload week
+      </Text>
+      <Text style={{ color: '#78350f', fontSize: 12 }}>{reason}</Text>
+    </View>
+  );
+}
 
 export default ClientHome;
