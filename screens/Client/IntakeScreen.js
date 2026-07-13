@@ -7,7 +7,7 @@ import {
   Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchIntakeData, submitIntakeData } from '../../utils/api';
+import { fetchIntakeData, submitIntakeData } from '../../api';
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';

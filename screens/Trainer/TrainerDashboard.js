@@ -13,7 +13,7 @@ import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomHeader from '../../components/CustomHeader';
 import GlassCard from '../../components/GlassCard';
-import { getClientStats } from '../../utils/api';
+import { getClientStats } from '../../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // G28 — RAG colors for the compliance chip

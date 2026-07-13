@@ -4,7 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { fetchProgressData, fetchExercises, fetchExerciseProgress, getBodyMetrics, postBodyMetric } from '../../utils/api';
+import { fetchProgressData, fetchExercises, fetchExerciseProgress, getBodyMetrics, postBodyMetric } from '../../api';
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomHeader from '../../components/CustomHeader';

@@ -8,7 +8,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
-import { fetchPrograms, createProgram, deleteProgram } from '../../utils/api';
+import { fetchPrograms, createProgram, deleteProgram } from '../../api';
 
 export default function ProgramsListScreen() {
     const navigation = useNavigation();

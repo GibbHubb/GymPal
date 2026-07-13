@@ -25,7 +25,7 @@ import {
   addTrainerClient,
   updateTrainerClient,
   deleteTrainerClient,
-} from '../../utils/api';
+} from '../../api';
 
 export default function ClientsManagementScreen() {
   const [active, setActive] = useState([]);

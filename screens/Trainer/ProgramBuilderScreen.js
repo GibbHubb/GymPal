@@ -18,7 +18,7 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
 import {
     fetchProgramDetail, upsertProgramDay, assignProgram, fetchTemplates,
-} from '../../utils/api';
+} from '../../api';
 
 const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 

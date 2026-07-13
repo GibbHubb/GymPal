@@ -7,7 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { Theme } from "../../constants/Theme"
 import ScreenWrapper from "../../components/ScreenWrapper"
 import CustomButton from "../../components/CustomButton"
-import { finishGroupWorkout, fetchTemplates, createTemplate, deleteTemplate } from "../../utils/api"
+import { finishGroupWorkout, fetchTemplates, createTemplate, deleteTemplate } from "../../api"
 
 let socket = null
 

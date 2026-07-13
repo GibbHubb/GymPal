@@ -9,7 +9,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import { fetchExercises, createGroupWorkout } from '../../utils/api';
+import { fetchExercises, createGroupWorkout } from '../../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchUserById, updateUser } from '../../utils/api';
+import { fetchUserById, updateUser } from '../../api';
 
 export default function ProfileScreen({ route, navigation }) {
   const { userId: routeUserId } = route.params || {}; // ✅ Get user ID from navigation if available
