@@ -2,7 +2,13 @@
 // Run with `npm test` (vitest).
 
 import { describe, it, expect } from 'vitest';
-import { epley1RM, setVolume, bestEpleyOfRows, bestVolumeOfRows } from '../prMath';
+import {
+  epley1RM,
+  setVolume,
+  bestEpleyOfRows,
+  bestVolumeOfRows,
+  mergePersonalBests,
+} from '../prMath';
 
 describe('epley1RM', () => {
   it('computes the Epley estimated 1RM for a known input', () => {
@@ -65,5 +71,47 @@ describe('bestEpleyOfRows / bestVolumeOfRows', () => {
     expect(bestEpleyOfRows([])).toBe(0);
     expect(bestVolumeOfRows([])).toBe(0);
     expect(bestEpleyOfRows(null)).toBe(0);
+  });
+});
+
+describe('mergePersonalBests (G39)', () => {
+  const serverPBs = [
+    { exercise_id: 1, exercise_name: 'Bench Press', new_volume: 500, previous_best: 450 },
+    { exercise_id: 2, exercise_name: 'Squat', new_volume: 800, previous_best: 700 },
+  ];
+
+  it('drops a server PB the client already reported as a volume PR', () => {
+    const clientPRs = [{ exercise_id: 1, type: 'volume', value: 500, previous: 450 }];
+    const out = mergePersonalBests(serverPBs, clientPRs);
+    expect(out.map((p) => p.exercise_id)).toEqual([2]);
+  });
+
+  it('keeps a server PB when the client only reported a 1RM PR for it', () => {
+    // A 1RM PR is a different celebration, so the volume PB is not a duplicate.
+    const clientPRs = [{ exercise_id: 1, type: '1rm', value: 120, previous: 110 }];
+    expect(mergePersonalBests(serverPBs, clientPRs)).toHaveLength(2);
+  });
+
+  it('keeps every server PB when the client path produced nothing (offline fallback)', () => {
+    expect(mergePersonalBests(serverPBs, [])).toEqual(serverPBs);
+    expect(mergePersonalBests(serverPBs, null)).toEqual(serverPBs);
+  });
+
+  it('returns an empty list when every PB is already covered', () => {
+    const clientPRs = [
+      { exercise_id: 1, type: 'volume' },
+      { exercise_id: 2, type: 'volume' },
+    ];
+    expect(mergePersonalBests(serverPBs, clientPRs)).toEqual([]);
+  });
+
+  it('matches ids across string/number types', () => {
+    const clientPRs = [{ exercise_id: '1', type: 'volume' }];
+    expect(mergePersonalBests(serverPBs, clientPRs).map((p) => p.exercise_id)).toEqual([2]);
+  });
+
+  it('returns an empty list for invalid server input', () => {
+    expect(mergePersonalBests(null, [])).toEqual([]);
+    expect(mergePersonalBests(undefined, [{ exercise_id: 1, type: 'volume' }])).toEqual([]);
   });
 });

@@ -17,11 +17,18 @@ const createWorkout = async (req, res) => {
   const { user_id } = req.user; // Get the user ID from the authenticated token
   const { name, date, notes, exercises, client_id } = req.body;
 
-  if (!name || !Array.isArray(exercises) || exercises.length === 0) {
+  if (!Array.isArray(exercises) || exercises.length === 0) {
     return res.status(400).json({
-      message: 'Invalid input: "name" and "exercises" are required fields.',
+      message: 'Invalid input: "exercises" is a required field.',
     });
   }
+
+  // G36 — `name` is no longer a hard requirement. The client now derives one
+  // (utils/workoutNaming.deriveWorkoutName), but sessions queued offline
+  // before that shipped still carry `name: null` and would 400 on every
+  // retry forever — a poison pill in the sync queue. Fall back instead.
+  const workoutName =
+    typeof name === 'string' && name.trim() ? name.trim() : 'Workout';
 
   try {
     // Idempotency: if a client_id is provided and a row with that UUID already exists, return it
@@ -43,8 +50,8 @@ const createWorkout = async (req, res) => {
       : 'INSERT INTO Workouts (user_id, name, date, notes) VALUES ($1, $2, $3, $4) RETURNING *';
 
     const queryParams = client_id
-      ? [user_id, name, date || new Date(), notes, client_id]
-      : [user_id, name, date || new Date(), notes];
+      ? [user_id, workoutName, date || new Date(), notes, client_id]
+      : [user_id, workoutName, date || new Date(), notes];
 
     const { rows: workoutRows } = await db.query(query, queryParams);
 

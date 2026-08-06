@@ -24,6 +24,10 @@ import { useRestTimer } from '../../hooks/useRestTimer';
 import RestTimer from '../../components/RestTimer';
 // G34 — client-side per-exercise PR detection (1RM + volume)
 import { computePersonalRecords } from '../../hooks/usePersonalRecords';
+// G39 — drop server PBs the client already celebrated as a volume PR
+import { mergePersonalBests } from '../../utils/prMath';
+// G36 — derive a workout name (backend rejects a null name with 400)
+import { deriveWorkoutName } from '../../utils/workoutNaming';
 
 const SERVER_URL = 'https://gympalbackend-production.up.railway.app';
 
@@ -291,7 +295,8 @@ const finishWorkout = async () => {
       // G9 — payload shape matches backend POST /api/workouts (createWorkout):
       //   exercises[{ exercise_id, sets: [{weight, reps, rir}] }]
       const workoutPayload = {
-          name: null,
+          // G36 — derived from the session; a null name 400s in createWorkout.
+          name: deriveWorkoutName(finishedSnapshot),
           notes: null,
           client_id: entryId,
           exercises: exercises
@@ -320,9 +325,12 @@ const finishWorkout = async () => {
       // G34 — compute client-side PRs from the snapshot vs the user's prior
       // history. Done BEFORE runSync so this session isn't compared to itself.
       // Best-effort: a failure here never blocks finishing/queuing.
+      // G39 — kept in a local so the server PBs can be de-duplicated against
+      // it below; setExercisePRs state isn't readable yet in this tick.
+      let clientPRs = [];
       try {
-          const prs = await computePersonalRecords(finishedSnapshot);
-          if (prs.length > 0) setExercisePRs(prs);
+          clientPRs = await computePersonalRecords(finishedSnapshot);
+          if (clientPRs.length > 0) setExercisePRs(clientPRs);
       } catch { /* PR detection is best-effort */ }
 
       // Try to sync immediately if online. G9 — surface any PBs detected by server.
@@ -330,7 +338,10 @@ const finishWorkout = async () => {
           const result = await runSync(SERVER_URL, authToken);
           setSyncStatus('synced');
           if (result && Array.isArray(result.personalBests) && result.personalBests.length > 0) {
-              setPersonalBests(result.personalBests);
+              // G39 — the client volume PR and the server PB are the same
+              // computation; show the server one only where the client had none.
+              const unreported = mergePersonalBests(result.personalBests, clientPRs);
+              if (unreported.length > 0) setPersonalBests(unreported);
           }
       } catch {
           setSyncStatus('failed');
