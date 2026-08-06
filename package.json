@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
-    "@expo/webpack-config": "^19.0.1",
     "@react-native-async-storage/async-storage": "^1.23.1",
     "@react-native-picker/picker": "^2.9.0",
     "@react-navigation/native": "^7.0.14",
@@ -36,8 +35,7 @@
     "react-native-web": "~0.19.13",
     "@react-native-community/netinfo": "^11.0.0",
     "socket.io-client": "^4.5.1",
-    "uuid": "^9.0.0",
-    "webpack": "^5.98.0"
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
