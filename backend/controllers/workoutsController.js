@@ -358,6 +358,78 @@ const createAndAssignWorkout = async (req, res) => {
   }
 };
 
+/**
+ * G38 — PR baselines for a set of exercises, in ONE request.
+ *
+ * G34 computed PRs by calling GET /workouts/progress/:exerciseId once per
+ * exercise and reducing the full history client-side. That has two costs that
+ * only grow: N round trips per workout finish, and an unbounded payload —
+ * a user with two years of bench press downloads ~1,250 rows on every finish
+ * to derive two numbers from them.
+ *
+ * The aggregation is trivial in SQL, so the server returns the two maxima
+ * directly. One request, constant-size response, and no new table to keep in
+ * sync (see the note in G38 about why this beats a `personal_records` table).
+ *
+ * The maths mirrors utils/prMath.js exactly, including its guards:
+ *   volume = weight * reps        (0 unless both are > 0)
+ *   1RM    = weight * (1 + reps/30)   — Epley, same 0 guard
+ * so a baseline computed here is identical to one the client would have
+ * derived from the same rows.
+ *
+ * Body: { exercise_ids: number[] }
+ * 200:  [{ exercise_id, best_volume, best_1rm, entry_count }]
+ * Exercises with no prior history are omitted — absent means "no baseline",
+ * which is what stops a first-ever log being celebrated as a PR.
+ */
+const getPrBaselines = async (req, res) => {
+  const { user_id } = req.user;
+  const ids = Array.isArray(req.body?.exercise_ids) ? req.body.exercise_ids : null;
+
+  if (!ids || ids.length === 0) {
+    return res.status(400).json({ message: 'Invalid input: "exercise_ids" must be a non-empty array.' });
+  }
+
+  // Coerce + de-dupe; a bad element must not poison the whole query.
+  const clean = [...new Set(ids.map((v) => parseInt(v, 10)).filter(Number.isInteger))];
+  if (clean.length === 0) {
+    return res.status(400).json({ message: 'Invalid input: "exercise_ids" contained no valid ids.' });
+  }
+
+  try {
+    const { rows } = await db.query(
+      `SELECT we.exercise_id,
+              COUNT(*)::int AS entry_count,
+              COALESCE(MAX(
+                CASE WHEN we.weight > 0 AND we.reps > 0
+                     THEN we.weight * we.reps END
+              ), 0) AS best_volume,
+              COALESCE(MAX(
+                CASE WHEN we.weight > 0 AND we.reps > 0
+                     THEN we.weight * (1 + we.reps / 30.0) END
+              ), 0) AS best_1rm
+         FROM workout_exercises we
+         JOIN workouts w ON we.workout_id = w.workout_id
+        WHERE w.user_id = $1
+          AND we.exercise_id = ANY($2::int[])
+        GROUP BY we.exercise_id`,
+      [user_id, clean],
+    );
+
+    res.status(200).json(
+      rows.map((r) => ({
+        exercise_id: r.exercise_id,
+        entry_count: r.entry_count,
+        best_volume: Number(r.best_volume),
+        best_1rm: Number(r.best_1rm),
+      })),
+    );
+  } catch (err) {
+    console.error('Error fetching PR baselines:', err.message);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
 const getExerciseProgress = async (req, res) => {
   const { exerciseId } = req.params;
   const userId = req.user?.user_id;
@@ -642,6 +714,7 @@ module.exports = {
   createAndAssignWorkout,
   getVolumeHeatmap,
   getExerciseProgress,
+  getPrBaselines,   // G38
   getSuggestedWeights,
   getClientStats,
   getLastWorkout,  // G30

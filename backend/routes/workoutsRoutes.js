@@ -6,6 +6,7 @@ const {
     getWorkoutDetails,
     getAssignedWorkouts,
     getExerciseProgress,
+    getPrBaselines,      // G38 — batch PR baselines
     getSuggestedWeights, // Add new function here
     getClientStats,      // G11 — trainer dashboard
     getVolumeHeatmap,    // G15 — weekly volume heatmap
@@ -27,6 +28,9 @@ router.get('/heatmap', authenticateToken, getVolumeHeatmap);
 router.get('/last', authenticateToken, getLastWorkout);
 router.get('/assigned', authenticateToken, getAssignedWorkouts);
 router.get('/progress/:exerciseId', authenticateToken, getExerciseProgress);
+// G38 — batch baselines for PR detection; POST because the id list can be long.
+// Registered before /:id so it isn't shadowed.
+router.post('/pr-baselines', authenticateToken, getPrBaselines);
 router.get('/suggested-weights/:workoutId', authenticateToken, getSuggestedWeights); // New route
 router.get('/:id', authenticateToken, getWorkoutDetails);
 
