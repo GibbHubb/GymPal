@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GymPal — training that keeps up with the gym floor</title>
+<meta name="description" content="GymPal is a React Native training app for coaches and their clients: live workout logging over websockets, offline-first sync, automatic PR detection, and a 7-day compliance view for trainers.">
+<meta name="theme-color" content="#050505">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="GymPal — training that keeps up with the gym floor">
+<meta property="og:description" content="Live workout logging, offline-first sync, automatic PR detection, and a 7-day client compliance view for trainers.">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<a class="skip" href="#features">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="wordmark" href="#top" aria-label="GymPal home">
+      <span class="mark" aria-hidden="true"></span>
+      <span>Gym<b>Pal</b></span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#trainer">For trainers</a>
+      <a href="#stack">Built with</a>
+      <a class="btn btn-ghost btn-sm" href="https://github.com/GibbHubb/GymPal">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ── Hero ─────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="wrap hero-inner">
+      <div class="hero-copy">
+        <p class="eyebrow">React Native · Expo · Socket.io</p>
+        <h1>Training that keeps up with<br><span class="gold">the gym floor.</span></h1>
+        <p class="lede">
+          GymPal is a coaching app built for the moment between sets — log a lift in two taps,
+          keep working when the signal drops, and let the trainer see who is actually turning up.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="https://github.com/GibbHubb/GymPal">
+            View the source
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a class="btn btn-ghost" href="#features">See what it does</a>
+        </div>
+        <p class="note">
+          Mobile app — not yet published to a store. The repository is public and runs locally with Expo.
+        </p>
+      </div>
+
+      <!-- CSS phone mockup: live session -->
+      <div class="hero-device" aria-hidden="true">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="scr-top">
+              <span class="scr-back">‹</span>
+              <span class="scr-title">Push Day A</span>
+              <span class="scr-live"><i></i>LIVE</span>
+            </div>
+            <div class="set-card done">
+              <div class="set-name">Bench Press</div>
+              <div class="set-rows">
+                <span class="row-done">80 kg × 8 ✓</span>
+                <span class="row-done">80 kg × 8 ✓</span>
+              </div>
+            </div>
+            <div class="set-card active">
+              <div class="set-name">Bench Press <em>· set 3</em></div>
+              <div class="entry">
+                <div class="field"><label>kg</label><b>82.5</b></div>
+                <div class="field"><label>reps</label><b>8</b></div>
+                <button class="log">Log</button>
+              </div>
+            </div>
+            <div class="pr-banner">
+              <span class="pr-dot"></span> New 1RM estimate · 103 kg
+            </div>
+            <div class="timer">
+              <div class="timer-ring"><span>1:28</span></div>
+              <div class="timer-label">Rest remaining</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Feature grid ─────────────────────────────────────────────── -->
+  <section id="features" class="section">
+    <div class="wrap">
+      <p class="eyebrow center">For the person training</p>
+      <h2 class="center">Built for a room with bad signal and no spare hands.</h2>
+
+      <div class="grid">
+        <article class="card">
+          <div class="ico" aria-hidden="true">◉</div>
+          <h3>Live workout logging</h3>
+          <p>Sessions run over Socket.io, so a set logged on the floor shows up for the trainer as it happens — no refresh, no end-of-day upload.</p>
+        </article>
+
+        <article class="card">
+          <div class="ico" aria-hidden="true">⇅</div>
+          <h3>Offline-first sync</h3>
+          <p>Basements kill signal. Every set is queued locally and replayed automatically when the connection returns, so a workout is never lost to a dead bar of reception.</p>
+        </article>
+
+        <article class="card">
+          <div class="ico" aria-hidden="true">⏱</div>
+          <h3>Between-set rest timer</h3>
+          <p>Starts on the set you just logged and counts down where your thumb already is, instead of in a second app.</p>
+        </article>
+
+        <article class="card">
+          <div class="ico" aria-hidden="true">★</div>
+          <h3>Automatic PR detection</h3>
+          <p>Estimated 1RM and volume records are recognised the moment you log them, and surfaced as a banner — you find out you hit a personal best without doing arithmetic.</p>
+        </article>
+
+        <article class="card">
+          <div class="ico" aria-hidden="true">▦</div>
+          <h3>Reusable templates</h3>
+          <p>Save any completed session as a template and start next week's version pre-filled.</p>
+        </article>
+
+        <article class="card">
+          <div class="ico" aria-hidden="true">◪</div>
+          <h3>Progress charts</h3>
+          <p>Volume and strength trends per lift, so progress is visible over months rather than remembered set by set.</p>
+        </article>
+
+        <article class="card">
+          <div class="ico" aria-hidden="true">◈</div>
+          <h3>Guided intake &amp; lifestyle</h3>
+          <p>A structured onboarding captures goals, history and constraints up front, plus ongoing lifestyle check-ins the coach can actually act on.</p>
+        </article>
+
+        <article class="card">
+          <div class="ico" aria-hidden="true">⚑</div>
+          <h3>Opt-in weekly leaderboard</h3>
+          <p>A friendly ranking within your own trainer's cohort — <strong>off by default</strong>. Nobody appears in it without choosing to.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Progress ─────────────────────────────────────────────────── -->
+  <section id="progress" class="section alt">
+    <div class="wrap split reverse">
+      <!-- CSS phone mockup: progress charts -->
+      <div class="split-device" aria-hidden="true">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="scr-top"><span class="scr-title">Progress</span><span class="scr-count">Bench Press</span></div>
+            <div class="stat-row">
+              <div class="stat"><label>Est. 1RM</label><b>103<i>kg</i></b><span class="up">▲ 6.2%</span></div>
+              <div class="stat"><label>Volume</label><b>14.2<i>t</i></b><span class="up">▲ 11%</span></div>
+            </div>
+            <div class="chart">
+              <span style="height:38%"></span><span style="height:46%"></span>
+              <span style="height:42%"></span><span style="height:58%"></span>
+              <span style="height:64%"></span><span style="height:59%"></span>
+              <span style="height:78%"></span><span class="peak" style="height:92%"></span>
+            </div>
+            <div class="chart-x"><span>Wk 1</span><span>Wk 4</span><span>Wk 8</span></div>
+            <div class="pr-banner"><span class="pr-dot"></span> 3 personal records this block</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="split-copy">
+        <p class="eyebrow">Over months, not sets</p>
+        <h2>Progress you don't have to remember.</h2>
+        <p class="lede">
+          Every logged set feeds volume and estimated-1RM trends per lift. Personal records are
+          detected as they happen rather than worked out afterwards, so the app tells you the
+          session mattered while you are still in the gym.
+        </p>
+        <ul class="ticks">
+          <li><b>Per-lift charts</b> — strength and volume trends drawn from your own logged sets.</li>
+          <li><b>Automatic PR detection</b> — estimated 1RM and volume records, flagged the moment they land.</li>
+          <li><b>Templates</b> — turn a session that worked into next week's starting point.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Trainer ──────────────────────────────────────────────────── -->
+  <section id="trainer" class="section">
+    <div class="wrap split">
+      <div class="split-copy">
+        <p class="eyebrow">For the person coaching</p>
+        <h2>See who is actually turning up.</h2>
+        <p class="lede">
+          The trainer dashboard leads with a seven-day compliance chip per client — red, amber or
+          green — so a roster of thirty tells you where to spend your attention before you have
+          opened a single profile.
+        </p>
+        <ul class="ticks">
+          <li><b>7-day RAG compliance chip</b> — a red/amber/green indicator of sessions completed against sessions planned. A traffic light, not a prediction.</li>
+          <li><b>Client management</b> — roster, per-client overview, and history in one place.</li>
+          <li><b>Workout &amp; program builder</b> — build single sessions or multi-week programmes and assign them.</li>
+          <li><b>Gym TV mode</b> — a display view for a screen on the gym wall.</li>
+        </ul>
+      </div>
+
+      <!-- CSS phone mockup: trainer dashboard -->
+      <div class="split-device" aria-hidden="true">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="scr-top"><span class="scr-title">Clients</span><span class="scr-count">28 active</span></div>
+            <div class="rag-summary">
+              <div class="rag-cell"><b class="t-g">18</b><span>On track</span></div>
+              <div class="rag-cell"><b class="t-a">7</b><span>Slipping</span></div>
+              <div class="rag-cell"><b class="t-r">3</b><span>At risk</span></div>
+            </div>
+            <div class="scr-label">Last 7 days</div>
+            <div class="client"><span class="avatar">TB</span><div class="cl-body"><b>Tom B.</b><span>1 of 4 sessions</span></div><span class="chip r">R</span></div>
+            <div class="client"><span class="avatar">PN</span><div class="cl-body"><b>Priya N.</b><span>1 of 3 sessions</span></div><span class="chip r">R</span></div>
+            <div class="client"><span class="avatar">MK</span><div class="cl-body"><b>Marta K.</b><span>3 of 4 sessions</span></div><span class="chip a">A</span></div>
+            <div class="client"><span class="avatar">AL</span><div class="cl-body"><b>Alex L.</b><span>2 of 3 sessions</span></div><span class="chip a">A</span></div>
+            <div class="client"><span class="avatar">SR</span><div class="cl-body"><b>Sam R.</b><span>4 of 4 sessions</span></div><span class="chip g">G</span></div>
+            <div class="client"><span class="avatar">JD</span><div class="cl-body"><b>Jess D.</b><span>4 of 4 sessions</span></div><span class="chip g">G</span></div>
+            <div class="client dim"><span class="avatar">HW</span><div class="cl-body"><b>Hana W.</b><span>3 of 3 sessions</span></div><span class="chip g">G</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Stack ────────────────────────────────────────────────────── -->
+  <section id="stack" class="section">
+    <div class="wrap">
+      <p class="eyebrow center">Under the hood</p>
+      <h2 class="center">Built with</h2>
+      <ul class="chips">
+        <li>React Native</li><li>Expo</li><li>Socket.io</li><li>Node / Express</li>
+        <li>JWT auth</li><li>Offline sync queue</li><li>react-native-chart-kit</li><li>Railway</li>
+      </ul>
+      <div class="closer">
+        <h3>Read the code.</h3>
+        <p>The full client and backend are public, including the sync queue and the compliance logic behind the RAG chip.</p>
+        <a class="btn btn-primary" href="https://github.com/GibbHubb/GymPal">Open the repository</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <span>GymPal — a GibbHubb project.</span>
+    <span class="muted">React Native · Expo · Socket.io · Node</span>
+  </div>
+</footer>
+
+</body>
+</html>
