@@ -153,6 +153,45 @@ No third-party UI library — every component is hand-built to the spec.
 
 ---
 
+## Offline-first Architecture
+
+GymPal workouts are logged offline-first — they are always saved locally before any network call is attempted.
+
+### Sync Queue (`utils/syncQueue.js`)
+
+Each workout is persisted to `AsyncStorage` under the key `hai_sync_queue` as a JSON array of queue items. Every item carries:
+
+| Field | Description |
+|-------|-------------|
+| `id` | Client-generated UUID v4 (used for idempotency) |
+| `type` | Always `workout_log` |
+| `payload` | Full workout body sent to the backend, including `client_id` |
+| `status` | `pending` → `retrying` → `synced` / `failed` |
+| `attempts` | Number of sync attempts so far |
+| `createdAt` | ISO timestamp of local creation |
+
+### Sync Engine (`utils/syncEngine.js`)
+
+`startSyncEngine(apiBaseUrl, getAuthToken)` registers a `NetInfo` listener. When the device comes online it calls `runSync()` automatically. `runSync` can also be called manually (e.g. from a "Sync now" button).
+
+**Retry policy:** up to 5 attempts with natural ordering (each connectivity event retries). After 5 failures the item is marked `failed` and not retried automatically.
+
+### Idempotency
+
+Each workout payload includes `client_id` (UUID). The backend `POST /api/workouts` route checks for an existing row with that `client_id` before inserting:
+
+- Match found → returns `200` with the existing row (no duplicate).
+- No match → inserts normally.
+
+The required migration is at `backend/migrations/add_client_id_to_workout_logs.sql`.
+
+### UI indicators
+
+- **TrainingScreen** — shows a yellow badge for pending items, green for synced, red for sync failure.
+- **ClientHome** — shows a red numeric badge on the Training button when there are unsynced workouts.
+
+---
+
 ## API Endpoints
 
 | Method | Route | Description |

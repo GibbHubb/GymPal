@@ -10,7 +10,7 @@ import {
   Modal,
   StyleSheet,
 } from 'react-native';
-import { fetchUsers, registerUser } from '../../utils/api';
+import { fetchUsers, registerUser } from '../../api';
 
 export default function ClientOverview({ navigation }) {
   const [users, setUsers] = useState([]);

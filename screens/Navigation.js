@@ -14,6 +14,11 @@ import TrainingScreen from './Client/TrainingScreen';
 import ProgressScreen from './Client/ProgressScreen';
 import ClientOverview from './Trainer/ClientOverview';
 import ProfileScreen from './Trainer/ProfileScreen';
+import TrainerDashboard from './Trainer/TrainerDashboard';
+import ClientsManagementScreen from './Trainer/ClientsManagementScreen';
+import ProgramsListScreen from './Trainer/ProgramsListScreen';
+import ProgramBuilderScreen from './Trainer/ProgramBuilderScreen';
+import LeaderboardScreen from './Client/LeaderboardScreen';  // G31
 
 const Stack = createStackNavigator();
 
@@ -34,6 +39,7 @@ export default function AppNavigator({ isAuthenticated, userRole, refreshAuth, i
             <Stack.Screen name="LifestyleScreen" component={LifestyleScreen} />
             <Stack.Screen name="TrainingScreen" component={TrainingScreen} />
             <Stack.Screen name="ProgressScreen" component={ProgressScreen} />
+            <Stack.Screen name="LeaderboardScreen" component={LeaderboardScreen} />
           </>
         ) : (
           <>
@@ -44,6 +50,10 @@ export default function AppNavigator({ isAuthenticated, userRole, refreshAuth, i
             <Stack.Screen name="TVScreen" component={TVScreen} />
             <Stack.Screen name="ClientOverview" component={ClientOverview} />
             <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+            <Stack.Screen name="TrainerDashboard" component={TrainerDashboard} />
+            <Stack.Screen name="ClientsManagement" component={ClientsManagementScreen} />
+            <Stack.Screen name="ProgramsList" component={ProgramsListScreen} />
+            <Stack.Screen name="ProgramBuilder" component={ProgramBuilderScreen} />
           </>
         )
       ) : null}

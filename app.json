@@ -2,6 +2,9 @@
   "expo": {
     "name": "GymPal",
     "slug": "GymPal",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "web": {
+      "bundler": "metro"
+    }
   }
 }

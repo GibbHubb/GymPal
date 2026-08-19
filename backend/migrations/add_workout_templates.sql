@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS workout_templates (
+  id SERIAL PRIMARY KEY,
+  trainer_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  name VARCHAR(100) NOT NULL,
+  exercises JSONB NOT NULL DEFAULT '[]',
+  created_at TIMESTAMP DEFAULT NOW()
+);

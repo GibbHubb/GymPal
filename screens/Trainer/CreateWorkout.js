@@ -9,7 +9,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import { fetchExercises, createGroupWorkout } from '../../utils/api';
+import { fetchExercises, createGroupWorkout } from '../../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -23,7 +23,9 @@ export default function CreateWorkout({ navigation }) {
   const [difficulty, setDifficulty] = useState('Novice');
   const [exerciseOptions, setExerciseOptions] = useState([]);
   const [exercises, setExercises] = useState([
-    { exercise_id: null, name: '', repRange: '', sets: '', rir: '' },
+    // G27 — group_kind/group_with_previous carry superset/dropset structure
+    // through the existing JSONB without a backend migration.
+    { exercise_id: null, name: '', repRange: '', sets: '', rir: '', group_kind: null, group_with_previous: false },
   ]);
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState([]); 
@@ -44,7 +46,7 @@ export default function CreateWorkout({ navigation }) {
   }, []);
 
   const addExercise = () => {
-    setExercises([...exercises, { exercise_id: null, name: '', repRange: '', sets: '', rir: '' }]);
+    setExercises([...exercises, { exercise_id: null, name: '', repRange: '', sets: '', rir: '', group_kind: null, group_with_previous: false }]);
     setSearchResults([...searchResults, []]);
   };
 
@@ -121,6 +123,9 @@ export default function CreateWorkout({ navigation }) {
           reps: exercise.repRange,
           sets: parseInt(exercise.sets, 10) || 0,
           weight: 0,
+          // G27 — round-trip the grouping convention through the JSONB.
+          group_kind: exercise.group_kind || null,
+          group_with_previous: !!exercise.group_with_previous,
         })),
         participants: [],
       };
@@ -184,6 +189,43 @@ export default function CreateWorkout({ navigation }) {
                 <Text style={{ color: Theme.colors.error, fontWeight: 'bold' }}>Remove</Text>
               </TouchableOpacity>
             </View>
+
+            {/* G27 — superset / drop-set grouping with the previous row. */}
+            {index > 0 && (
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                <TouchableOpacity
+                  onPress={() => handleExerciseChange(index, 'group_kind',
+                    exercise.group_kind === 'superset' ? null : 'superset')}
+                  onLongPress={() => handleExerciseChange(index, 'group_with_previous', !exercise.group_with_previous)}
+                >
+                  <Text style={{
+                    color: exercise.group_kind === 'superset' && exercise.group_with_previous ? '#22c55e' : '#94a3b8',
+                    fontSize: 12, padding: 4, borderWidth: 1,
+                    borderColor: exercise.group_kind === 'superset' && exercise.group_with_previous ? '#22c55e' : '#475569',
+                    borderRadius: 6,
+                  }}>
+                    🔗 Superset {exercise.group_kind === 'superset' && exercise.group_with_previous ? '✓' : ''}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    handleExerciseChange(index, 'group_kind',
+                      exercise.group_kind === 'dropset' ? null : 'dropset');
+                    handleExerciseChange(index, 'group_with_previous',
+                      exercise.group_kind !== 'dropset');
+                  }}
+                >
+                  <Text style={{
+                    color: exercise.group_kind === 'dropset' && exercise.group_with_previous ? '#22c55e' : '#94a3b8',
+                    fontSize: 12, padding: 4, borderWidth: 1,
+                    borderColor: exercise.group_kind === 'dropset' && exercise.group_with_previous ? '#22c55e' : '#475569',
+                    borderRadius: 6,
+                  }}>
+                    ↓ Drop-set {exercise.group_kind === 'dropset' && exercise.group_with_previous ? '✓' : ''}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <TextInput 
               style={styles.input} 

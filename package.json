@@ -6,11 +6,11 @@
     "start": "expo start --dev-client",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "vitest run"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
-    "@expo/webpack-config": "^19.0.1",
     "@react-native-async-storage/async-storage": "^1.23.1",
     "@react-native-picker/picker": "^2.9.0",
     "@react-navigation/native": "^7.0.14",
@@ -33,12 +33,14 @@
     "react-native-svg": "^15.8.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.19.13",
+    "@react-native-community/netinfo": "^11.0.0",
     "socket.io-client": "^4.5.1",
-    "webpack": "^5.98.0"
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "babel-plugin-module-resolver": "^5.0.2"
+    "babel-plugin-module-resolver": "^5.0.2",
+    "vitest": "^2.1.9"
   },
   "private": true
 }

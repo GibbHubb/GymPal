@@ -18,8 +18,16 @@ const getExercises = async (req, res) => {
 };
 
 // Create a new exercise
+// G13 — accepts the four new library fields. Legacy 3-field callers stay
+// valid because every new field has a sane default.
 const createExercise = async (req, res) => {
-    const { name, muscle_group, difficulty } = req.body;
+    const {
+        name, muscle_group, difficulty,
+        equipment = null,
+        video_url = null,
+        default_rest_seconds = 90,
+        is_global = false,
+    } = req.body;
 
     // Validate required fields
     if (!name || !muscle_group || !difficulty) {
@@ -31,11 +39,20 @@ const createExercise = async (req, res) => {
     try {
         const { rows } = await db.query(
             `
-            INSERT INTO exercises (name, muscle_group, difficulty) 
-            VALUES ($1, $2, $3) 
+            INSERT INTO exercises
+                (name, muscle_group, difficulty, equipment, video_url, default_rest_seconds, is_global)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
             `,
-            [name.trim(), muscle_group.trim(), difficulty.trim()]
+            [
+                name.trim(),
+                muscle_group.trim(),
+                difficulty.trim(),
+                equipment ? String(equipment).trim() : null,
+                video_url ? String(video_url).trim() : null,
+                Math.max(15, Math.min(900, parseInt(default_rest_seconds, 10) || 90)),
+                !!is_global,
+            ]
         );
 
         res.status(201).json({
@@ -88,9 +105,14 @@ const getExerciseById = async (req, res) => {
 };
 
 // Update an exercise
+// G13 — partial update over new library columns; COALESCE keeps any field
+// the caller didn't send at its existing value.
 const updateExercise = async (req, res) => {
     const { id } = req.params;
-    const { name, muscle_group, difficulty } = req.body;
+    const {
+        name, muscle_group, difficulty,
+        equipment, video_url, default_rest_seconds, is_global,
+    } = req.body;
 
     if (isNaN(id)) {
         return res.status(400).json({ message: 'Invalid exercise ID: ID must be a number.' });
@@ -105,12 +127,29 @@ const updateExercise = async (req, res) => {
     try {
         const { rows } = await db.query(
             `
-            UPDATE exercises 
-            SET name = $1, muscle_group = $2, difficulty = $3
-            WHERE exercise_id = $4
+            UPDATE exercises
+            SET name                 = $1,
+                muscle_group         = $2,
+                difficulty           = $3,
+                equipment            = COALESCE($4, equipment),
+                video_url            = COALESCE($5, video_url),
+                default_rest_seconds = COALESCE($6, default_rest_seconds),
+                is_global            = COALESCE($7, is_global)
+            WHERE exercise_id = $8
             RETURNING *
             `,
-            [name.trim(), muscle_group.trim(), difficulty.trim(), id]
+            [
+                name.trim(),
+                muscle_group.trim(),
+                difficulty.trim(),
+                equipment !== undefined && equipment !== null ? String(equipment).trim() : null,
+                video_url !== undefined && video_url !== null ? String(video_url).trim() : null,
+                default_rest_seconds !== undefined && default_rest_seconds !== null
+                    ? Math.max(15, Math.min(900, parseInt(default_rest_seconds, 10) || 90))
+                    : null,
+                typeof is_global === 'boolean' ? is_global : null,
+                id,
+            ]
         );
 
         if (!rows[0]) {

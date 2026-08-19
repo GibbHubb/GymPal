@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const { sendToUsers } = require('../services/push_service');
 
 // Fetch all group workouts
 const getGroupWorkouts = async (req, res) => {
@@ -160,6 +161,15 @@ const createGroupWorkout = async (req, res) => {
             );
 
             await Promise.all(participantPromises);
+        }
+
+        // G2 — push notification to all participants
+        if (participants && participants.length > 0) {
+            const participantIds = participants.map((p) => p.user_id);
+            sendToUsers(participantIds, 'New Workout Assigned 💪', `${name} has been assigned to you.`, {
+                screen: 'TrainingScreen',
+                group_workout_id: groupWorkoutId,
+            });
         }
 
         // Return the created workout details

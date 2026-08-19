@@ -35,20 +35,35 @@ export default function TrainerHome({ navigation }) {
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             
             <View style={styles.buttonContainer}>
-              <CustomButton 
-                title="🏋️‍♂️ Workout Overview" 
-                onPress={() => navigation.navigate('WorkoutsMenu')} 
-                style={styles.actionBtn} 
+              <CustomButton
+                title="🏋️‍♂️ Workout Overview"
+                onPress={() => navigation.navigate('WorkoutsMenu')}
+                style={styles.actionBtn}
               />
-              <CustomButton 
-                title="👥 Client Overview" 
-                onPress={() => navigation.navigate('ClientOverview')} 
-                style={styles.actionBtn} 
+              <CustomButton
+                title="📊 Client Dashboard"
+                onPress={() => navigation.navigate('TrainerDashboard')}
+                style={styles.actionBtn}
               />
-              <CustomButton 
-                title="📺 Enter Streaming Mode" 
-                onPress={() => navigation.navigate('TVScreen')} 
-                style={styles.actionBtn} 
+              <CustomButton
+                title="👥 Client Overview"
+                onPress={() => navigation.navigate('ClientOverview')}
+                style={styles.actionBtn}
+              />
+              <CustomButton
+                title="🤝 Manage Clients"
+                onPress={() => navigation.navigate('ClientsManagement')}
+                style={styles.actionBtn}
+              />
+              <CustomButton
+                title="📅 Programs"
+                onPress={() => navigation.navigate('ProgramsList')}
+                style={styles.actionBtn}
+              />
+              <CustomButton
+                title="📺 Enter Streaming Mode"
+                onPress={() => navigation.navigate('TVScreen')}
+                style={styles.actionBtn}
               />
             </View>
           </BlurView>

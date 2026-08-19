@@ -9,7 +9,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { loginUser } from '../utils/api';
+import { loginUser } from '../api';
 import { Theme } from '../constants/Theme';
 import CustomButton from '../components/CustomButton';
 import CustomInput from '../components/CustomInput';

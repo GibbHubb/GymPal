@@ -12,7 +12,7 @@ import {
     ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchLifestyleData, submitLifestyleData } from '../../utils/api';
+import { fetchLifestyleData, submitLifestyleData } from '../../api';
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomHeader from '../../components/CustomHeader';

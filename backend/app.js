@@ -1,15 +1,18 @@
+const http    = require('http');
 const express = require('express');
-const cors = require('cors');
-require('dotenv').config(); 
-const db = require('./models/db'); 
+const cors    = require('cors');
+const { Server } = require('socket.io');
+require('dotenv').config();
+const db     = require('./models/db');
 const config = require('./config/config');
+const socketHandlers = require('./socket-io-handlers');
 
 const app = express();
 const PORT = config.port || 5000;
 
 // ✅ CORS Configuration (Ensure this is before your routes)
 app.use(cors({
-    origin: '*', // Allow ALL origins for now (change this later)
+    origin: true, // true reflects the Request Origin, accommodating credentials: true safely
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -53,6 +56,11 @@ app.use('/api/workouts', require('./routes/workoutsRoutes'));
 app.use('/api/group-workouts', require('./routes/groupWorkoutsRoutes'));
 app.use('/api/lifestyle-data', require('./routes/lifestyleDataRoutes'));
 app.use('/api/intake', require('./routes/intakeRoutes'));
+app.use('/api/templates', require('./routes/workoutTemplatesRoutes'));
+app.use('/api/body-metrics', require('./routes/bodyMetricsRoutes'));
+app.use('/api/trainer-clients', require('./routes/trainerClientsRoutes'));
+app.use('/api/programs', require('./routes/programsRoutes'));
+app.use('/api/leaderboard', require('./routes/leaderboardRoutes'));  // G31
 
 // ✅ Catch-all for undefined routes
 app.use((req, res, next) => {
@@ -73,10 +81,24 @@ app.use((err, req, res, next) => {
     });
 });
 
+// ✅ HTTP server + Socket.IO
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin:      true,
+        methods:     ['GET', 'POST'],
+        credentials: true,
+    },
+});
+socketHandlers(io);
+
 // ✅ Start Server
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`✅ Connected to database: ${config.databaseUrl}`);
 });
 
-module.exports = { app, server };
+// G8 — weekly summary cron
+require('./jobs/weekly_summary');
+
+module.exports = { app, server, io };

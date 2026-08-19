@@ -9,8 +9,8 @@ import {
   StyleSheet,
   Image,
 } from 'react-native';
-import { fetchGroupWorkoutDetails, addParticipantsToWorkout, fetchSuggestedWeights, editGroupWorkout } from '../../utils/api';
-import { checkUserExists, fetchExercises, addExerciseToWorkout } from '../../utils/api';
+import { fetchGroupWorkoutDetails, addParticipantsToWorkout, fetchSuggestedWeights, editGroupWorkout } from '../../api';
+import { checkUserExists, fetchExercises, addExerciseToWorkout } from '../../api';
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';

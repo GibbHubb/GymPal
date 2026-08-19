@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const { sendToUser } = require('../services/push_service');
 
 // Get all workouts
 const getWorkouts = async (req, res) => {
@@ -14,27 +15,52 @@ const getWorkouts = async (req, res) => {
 // Create a new workout
 const createWorkout = async (req, res) => {
   const { user_id } = req.user; // Get the user ID from the authenticated token
-  const { name, date, notes, exercises } = req.body;
+  const { name, date, notes, exercises, client_id } = req.body;
 
-  if (!name || !Array.isArray(exercises) || exercises.length === 0) {
+  if (!Array.isArray(exercises) || exercises.length === 0) {
     return res.status(400).json({
-      message: 'Invalid input: "name" and "exercises" are required fields.',
+      message: 'Invalid input: "exercises" is a required field.',
     });
   }
 
-  try {
-    const query =
-      'INSERT INTO Workouts (user_id, name, date, notes) VALUES ($1, $2, $3, $4) RETURNING *';
+  // G36 — `name` is no longer a hard requirement. The client now derives one
+  // (utils/workoutNaming.deriveWorkoutName), but sessions queued offline
+  // before that shipped still carry `name: null` and would 400 on every
+  // retry forever — a poison pill in the sync queue. Fall back instead.
+  const workoutName =
+    typeof name === 'string' && name.trim() ? name.trim() : 'Workout';
 
-    const { rows: workoutRows } = await db.query(query, [
-      user_id,
-      name,
-      date || new Date(),
-      notes,
-    ]);
+  try {
+    // Idempotency: if a client_id is provided and a row with that UUID already exists, return it
+    if (client_id) {
+      const { rows: existing } = await db.query(
+        'SELECT * FROM Workouts WHERE client_id = $1',
+        [client_id]
+      );
+      if (existing.length > 0) {
+        return res.status(200).json({
+          message: 'Workout already exists (idempotent).',
+          workout: existing[0],
+        });
+      }
+    }
+
+    const query = client_id
+      ? 'INSERT INTO Workouts (user_id, name, date, notes, client_id) VALUES ($1, $2, $3, $4, $5) RETURNING *'
+      : 'INSERT INTO Workouts (user_id, name, date, notes) VALUES ($1, $2, $3, $4) RETURNING *';
+
+    const queryParams = client_id
+      ? [user_id, workoutName, date || new Date(), notes, client_id]
+      : [user_id, workoutName, date || new Date(), notes];
+
+    const { rows: workoutRows } = await db.query(query, queryParams);
 
     const workout = workoutRows[0];
     const workoutId = workout.workout_id;
+
+    // G9 — PB detection: for each exercise, compute best volume BEFORE this workout,
+    // then compare against max volume in the just-logged sets.
+    const personalBests = [];
 
     // Insert exercises into workout_exercises
     const insertPromises = exercises.map(({ exercise_id, sets }) => {
@@ -48,12 +74,69 @@ const createWorkout = async (req, res) => {
 
     await Promise.all(insertPromises.flat());
 
+    // G9 — After insert, run PB detection per exercise (volume = weight * reps)
+    for (const ex of exercises) {
+      try {
+        if (!ex.exercise_id || !Array.isArray(ex.sets) || ex.sets.length === 0) continue;
+
+        // Best volume in just-logged sets
+        const bestNewVolume = ex.sets.reduce((max, s) => {
+          const v = (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0);
+          return v > max ? v : max;
+        }, 0);
+        if (bestNewVolume <= 0) continue;
+
+        // Historical best volume (excluding the rows we just inserted by limiting to older workouts)
+        const { rows: histRows } = await db.query(
+          `SELECT COALESCE(MAX(we.weight * we.reps), 0) AS best_volume,
+                  COUNT(*) AS prior_count
+             FROM workout_exercises we
+             JOIN workouts w ON we.workout_id = w.workout_id
+            WHERE we.exercise_id = $1
+              AND w.user_id = $2
+              AND w.workout_id <> $3`,
+          [ex.exercise_id, user_id, workoutId]
+        );
+        const prevBest = parseFloat(histRows[0]?.best_volume || 0);
+        const priorCount = parseInt(histRows[0]?.prior_count || 0, 10);
+
+        // Require at least one prior entry to avoid false "first-ever" PBs
+        if (priorCount > 0 && bestNewVolume > prevBest) {
+          // Fetch exercise name for the banner/notification
+          const { rows: exRows } = await db.query(
+            'SELECT name FROM exercises WHERE exercise_id = $1',
+            [ex.exercise_id]
+          );
+          const exerciseName = exRows[0]?.name || `Exercise #${ex.exercise_id}`;
+
+          personalBests.push({
+            exercise_id: ex.exercise_id,
+            exercise_name: exerciseName,
+            new_volume: bestNewVolume,
+            previous_best: prevBest,
+          });
+
+          // Fire-and-forget push to the user themselves (self-notification).
+          // Trainer push is intentionally skipped for v1 — no trainer-client FK exists.
+          sendToUser(
+            user_id,
+            'New Personal Best! 🏆',
+            `${exerciseName}: volume ${bestNewVolume} (was ${Math.round(prevBest)})`,
+            { type: 'personal_best', exercise_id: ex.exercise_id }
+          ).catch(() => {});
+        }
+      } catch (pbErr) {
+        console.error('[G9] PB detection error:', pbErr.message);
+      }
+    }
+
     res.status(201).json({
       message: 'Workout created successfully.',
       workout: {
         ...workout,
         exercises,
       },
+      personal_bests: personalBests,
     });
   } catch (err) {
     console.error('Error creating workout:', err.message);
@@ -275,6 +358,78 @@ const createAndAssignWorkout = async (req, res) => {
   }
 };
 
+/**
+ * G38 — PR baselines for a set of exercises, in ONE request.
+ *
+ * G34 computed PRs by calling GET /workouts/progress/:exerciseId once per
+ * exercise and reducing the full history client-side. That has two costs that
+ * only grow: N round trips per workout finish, and an unbounded payload —
+ * a user with two years of bench press downloads ~1,250 rows on every finish
+ * to derive two numbers from them.
+ *
+ * The aggregation is trivial in SQL, so the server returns the two maxima
+ * directly. One request, constant-size response, and no new table to keep in
+ * sync (see the note in G38 about why this beats a `personal_records` table).
+ *
+ * The maths mirrors utils/prMath.js exactly, including its guards:
+ *   volume = weight * reps        (0 unless both are > 0)
+ *   1RM    = weight * (1 + reps/30)   — Epley, same 0 guard
+ * so a baseline computed here is identical to one the client would have
+ * derived from the same rows.
+ *
+ * Body: { exercise_ids: number[] }
+ * 200:  [{ exercise_id, best_volume, best_1rm, entry_count }]
+ * Exercises with no prior history are omitted — absent means "no baseline",
+ * which is what stops a first-ever log being celebrated as a PR.
+ */
+const getPrBaselines = async (req, res) => {
+  const { user_id } = req.user;
+  const ids = Array.isArray(req.body?.exercise_ids) ? req.body.exercise_ids : null;
+
+  if (!ids || ids.length === 0) {
+    return res.status(400).json({ message: 'Invalid input: "exercise_ids" must be a non-empty array.' });
+  }
+
+  // Coerce + de-dupe; a bad element must not poison the whole query.
+  const clean = [...new Set(ids.map((v) => parseInt(v, 10)).filter(Number.isInteger))];
+  if (clean.length === 0) {
+    return res.status(400).json({ message: 'Invalid input: "exercise_ids" contained no valid ids.' });
+  }
+
+  try {
+    const { rows } = await db.query(
+      `SELECT we.exercise_id,
+              COUNT(*)::int AS entry_count,
+              COALESCE(MAX(
+                CASE WHEN we.weight > 0 AND we.reps > 0
+                     THEN we.weight * we.reps END
+              ), 0) AS best_volume,
+              COALESCE(MAX(
+                CASE WHEN we.weight > 0 AND we.reps > 0
+                     THEN we.weight * (1 + we.reps / 30.0) END
+              ), 0) AS best_1rm
+         FROM workout_exercises we
+         JOIN workouts w ON we.workout_id = w.workout_id
+        WHERE w.user_id = $1
+          AND we.exercise_id = ANY($2::int[])
+        GROUP BY we.exercise_id`,
+      [user_id, clean],
+    );
+
+    res.status(200).json(
+      rows.map((r) => ({
+        exercise_id: r.exercise_id,
+        entry_count: r.entry_count,
+        best_volume: Number(r.best_volume),
+        best_1rm: Number(r.best_1rm),
+      })),
+    );
+  } catch (err) {
+    console.error('Error fetching PR baselines:', err.message);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
 const getExerciseProgress = async (req, res) => {
   const { exerciseId } = req.params;
   const userId = req.user?.user_id;
@@ -375,6 +530,179 @@ const getSuggestedWeights = async (req, res) => {
 
 
 
+/**
+ * G11 — Trainer client dashboard.
+ * Returns per-client stats for everyone with role='client':
+ *   user_id, username, last_session, total_sessions, streak, inactive (bool)
+ * Streak = consecutive ISO weeks with >= 1 session (look back up to 52 weeks).
+ * Inactive = no workout logged in >= 7 days (or ever).
+ * Sorted: inactive first (oldest last_session first), then active clients by
+ * most recent last_session desc.
+ */
+const getClientStats = async (req, res) => {
+  const { role } = req.user;
+  const isTrainer = role === 'pt' || role === 'masterPt' || role === 'trainer';
+  if (!isTrainer) {
+    return res.status(403).json({ message: 'Trainer role required.' });
+  }
+
+  const trainerId = req.user.user_id;
+
+  try {
+    // G12 — scope to *this* trainer's active clients via trainer_clients pivot.
+    const { rows: clients } = await db.query(
+      `SELECT u.user_id,
+              u.username,
+              MAX(w.date)                AS last_session,
+              COUNT(w.workout_id)::int   AS total_sessions
+         FROM trainer_clients tc
+         JOIN users u           ON u.user_id   = tc.client_id
+    LEFT JOIN workouts w        ON w.user_id   = u.user_id
+        WHERE tc.trainer_id = $1
+          AND tc.status     = 'active'
+     GROUP BY u.user_id, u.username`,
+      [trainerId],
+    );
+
+    // 2) For each client, compute streak (JS-side — cheap for up to ~50 clients)
+    const results = await Promise.all(
+      clients.map(async (c) => {
+        let streak = 0;
+        if (c.last_session) {
+          for (let weeksAgo = 0; weeksAgo < 52; weeksAgo++) {
+            const { rows } = await db.query(
+              `SELECT COUNT(*)::int AS cnt
+                 FROM workouts
+                WHERE user_id = $1
+                  AND date >= (NOW() - (($2 + 1) || ' weeks')::interval)
+                  AND date <  (NOW() - ($2 || ' weeks')::interval)`,
+              [c.user_id, weeksAgo]
+            );
+            if (rows[0].cnt > 0) streak++;
+            else break;
+          }
+        }
+
+        const lastSessionDate = c.last_session ? new Date(c.last_session) : null;
+        const daysSince = lastSessionDate
+          ? Math.floor((Date.now() - lastSessionDate.getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        const inactive = daysSince === null || daysSince >= 7;
+
+        return {
+          user_id: c.user_id,
+          username: c.username,
+          last_session: c.last_session,
+          total_sessions: c.total_sessions || 0,
+          streak,
+          days_since: daysSince,
+          inactive,
+        };
+      })
+    );
+
+    // 3) Sort: inactive (oldest or never first) before active (most recent first)
+    results.sort((a, b) => {
+      if (a.inactive !== b.inactive) return a.inactive ? -1 : 1;
+      if (a.inactive) {
+        // Both inactive — never-logged first, then oldest last_session first
+        if (!a.last_session && b.last_session) return -1;
+        if (a.last_session && !b.last_session) return 1;
+        if (!a.last_session && !b.last_session) return 0;
+        return new Date(a.last_session) - new Date(b.last_session);
+      }
+      // Both active — most recent first
+      return new Date(b.last_session) - new Date(a.last_session);
+    });
+
+    res.status(200).json(results);
+  } catch (err) {
+    console.error('[G11] Error fetching client stats:', err.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+/**
+ * G15 — Weekly volume heatmap.
+ * Returns one row per day (UTC) the user logged any work over the last
+ * `weeks * 7` days, with total sets + distinct-exercise count per day.
+ * Empty days are NOT included (frontend skeleton fills the grid).
+ */
+const getVolumeHeatmap = async (req, res) => {
+  const userId = req.user.user_id;
+  const weeks = Math.max(1, Math.min(104, parseInt(req.query.weeks, 10) || 52));
+  const sinceDays = weeks * 7;
+
+  try {
+    const { rows } = await db.query(
+      `SELECT DATE(w.date)                 AS day,
+              COALESCE(SUM(we.sets), 0)::int  AS sets,
+              COUNT(DISTINCT we.exercise_id)::int AS exercise_count
+         FROM workouts w
+    LEFT JOIN workout_exercises we ON we.workout_id = w.workout_id
+        WHERE w.user_id = $1
+          AND w.date >= (NOW() - ($2 || ' days')::interval)
+     GROUP BY DATE(w.date)
+     ORDER BY day`,
+      [userId, sinceDays]
+    );
+    res.status(200).json({ weeks, days: rows });
+  } catch (err) {
+    console.error('[G15] Error fetching heatmap:', err.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+// G30 — most recent logged workout for the auth'd user (the seed of the
+// "Repeat last" flow). Returns the workout row + its workout_exercises
+// shaped as a TrainingScreen-ready { name, exercises } payload.
+const getLastWorkout = async (req, res) => {
+  const userId = req.user.user_id;
+  try {
+    const { rows: wf } = await db.query(
+      `SELECT workout_id, name, date, notes
+         FROM Workouts
+        WHERE user_id = $1
+        ORDER BY date DESC, workout_id DESC
+        LIMIT 1`,
+      [userId],
+    );
+    if (wf.length === 0) {
+      return res.status(404).json({ message: 'No previous workout to repeat.' });
+    }
+    const w = wf[0];
+    const { rows: ex } = await db.query(
+      `SELECT we.exercise_id, we.sets, we.reps, we.weight, we.rir, e.name
+         FROM workout_exercises we
+         LEFT JOIN exercises e ON e.exercise_id = we.exercise_id
+        WHERE we.workout_id = $1`,
+      [w.workout_id],
+    );
+    res.status(200).json({
+      source_workout_id: w.workout_id,
+      name: w.name,
+      // TrainingScreen expects each exercise to carry its set-blueprint;
+      // we collapse the historical {sets,reps,weight,rir} into N empty
+      // sets so the client repeats the *structure*, not last week's exact
+      // numbers (which can be retrieved separately via /suggested-weights).
+      exercises: ex.map((row) => ({
+        exercise_id: row.exercise_id,
+        name: row.name,
+        sets: Array.from({ length: row.sets || 1 }, () => ({
+          reps: row.reps || 0,
+          weight: row.weight || 0,
+          rir: row.rir || 0,
+        })),
+      })),
+    });
+  } catch (err) {
+    console.error('[G30] getLastWorkout error:', err.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
 module.exports = {
   getWorkouts,
   createWorkout,
@@ -384,6 +712,10 @@ module.exports = {
   getWorkoutsPerWeek,
   getAssignedWorkouts,
   createAndAssignWorkout,
+  getVolumeHeatmap,
   getExerciseProgress,
-  getSuggestedWeights
+  getPrBaselines,   // G38
+  getSuggestedWeights,
+  getClientStats,
+  getLastWorkout,  // G30
 };

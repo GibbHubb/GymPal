@@ -17,7 +17,7 @@ import {
   fetchMostUsedWorkouts,
   searchWorkouts,
   fetchGroupWorkoutDetails,
-} from '../../utils/api';
+} from '../../api';
 
 
 export default function WorkoutsMenu({ navigation }) {
