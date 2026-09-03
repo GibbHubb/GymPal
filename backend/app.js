@@ -21,12 +21,16 @@ app.use(cors({
 // ✅ Ensure preflight requests (OPTIONS) are handled properly
 app.options('*', cors());
 
+// G46 — this block used to print DATABASE_URL and JWT_SECRET in plaintext on every
+// boot, which on Railway lands in the deployment logs (a live secret exposure).
+// Log only what is safe to see, and confirm the secrets are PRESENT without printing
+// their values — an unset JWT_SECRET is itself worth surfacing.
 console.log('Loaded Configuration:');
 console.log(`PORT: ${PORT}`);
-console.log(`DATABASE_URL: ${config.databaseUrl}`);
-console.log(`JWT_SECRET: ${config.jwtSecret}`);
-console.log(`JWT_EXPIRES_IN: ${config.jwtExpiresIn}`);
 console.log(`NODE_ENV: ${config.nodeEnv}`);
+console.log(`JWT_EXPIRES_IN: ${config.jwtExpiresIn}`);
+console.log(`DATABASE_URL: ${config.databaseUrl ? '[set]' : '[MISSING]'}`);
+console.log(`JWT_SECRET: ${config.jwtSecret ? '[set]' : '[MISSING]'}`);
 
 // ✅ Middleware
 app.use(express.json());
@@ -95,7 +99,9 @@ socketHandlers(io);
 // ✅ Start Server
 server.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`✅ Connected to database: ${config.databaseUrl}`);
+    // G46 — was `Connected to database: ${config.databaseUrl}`, a second copy of the
+    // connection string (with credentials) in the logs.
+    console.log(`✅ Connected to database`);
 });
 
 // G8 — weekly summary cron
