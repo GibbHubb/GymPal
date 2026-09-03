@@ -99,8 +99,35 @@ const createUser = async (req, res) => {
 
 // Fetch All Users
 const getUsers = async (req, res) => {
+  // G44 — this handed the whole Users table (user_id, username, role) to any
+  // authenticated caller. Return only rows the caller may see: a client sees only
+  // themselves; a trainer sees themselves plus their ACTIVE trainer_clients.
+  const me = req.user && req.user.user_id;
+  const role = req.user && req.user.role;
+  if (!me) {
+    return res.status(401).json({ message: 'Not authenticated.' });
+  }
+  const isTrainer = role === 'pt' || role === 'masterPt' || role === 'trainer';
   try {
-    const { rows } = await db.query('SELECT user_id, username, role FROM Users');
+    let rows;
+    if (isTrainer) {
+      ({ rows } = await db.query(
+        `SELECT user_id, username, role
+           FROM Users
+          WHERE user_id = $1
+             OR user_id IN (
+                  SELECT client_id FROM trainer_clients
+                   WHERE trainer_id = $1 AND status = 'active'
+                )
+          ORDER BY user_id`,
+        [me],
+      ));
+    } else {
+      ({ rows } = await db.query(
+        'SELECT user_id, username, role FROM Users WHERE user_id = $1',
+        [me],
+      ));
+    }
     res.status(200).json(rows);
   } catch (err) {
     console.error('Error fetching users:', err.message);

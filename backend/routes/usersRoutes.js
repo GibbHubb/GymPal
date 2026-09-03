@@ -29,6 +29,8 @@ router.post('/refresh', refreshToken);
  */
 
 // Get all users
+// G44 — getUsers now filters by relationship (a client sees only themselves; a
+// trainer sees themselves + their active clients), so the route just needs auth.
 router.get('/', authenticateToken, getUsers);
 
 // Get the logged-in user's profile

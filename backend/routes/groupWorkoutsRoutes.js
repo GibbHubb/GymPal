@@ -18,8 +18,8 @@ const router = express.Router();
 // Group Workout Routes
 router.get('/level', authenticateToken, getWorkoutsByLevel);
 router.get('/your', authenticateToken, getYourWorkouts);
-router.get('/last10', getLast10Workouts);
-router.get('/most-used', getMostUsedWorkouts);
+router.get('/last10', authenticateToken, getLast10Workouts); // G44 — was unauthenticated
+router.get('/most-used', authenticateToken, getMostUsedWorkouts); // G44 — was unauthenticated
 router.get('/search', authenticateToken, searchWorkouts);
 router.get('/:id', authenticateToken, getGroupWorkoutDetails);
 router.post('/', authenticateToken, createGroupWorkout);
