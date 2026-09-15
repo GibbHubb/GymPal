@@ -5,6 +5,7 @@ const { Server } = require('socket.io');
 require('dotenv').config();
 const db     = require('./models/db');
 const config = require('./config/config');
+config.validate(); // G46 — fail at boot, naming the variable, not at first request
 const socketHandlers = require('./socket-io-handlers');
 
 const app = express();
@@ -31,6 +32,7 @@ console.log(`NODE_ENV: ${config.nodeEnv}`);
 console.log(`JWT_EXPIRES_IN: ${config.jwtExpiresIn}`);
 console.log(`DATABASE_URL: ${config.databaseUrl ? '[set]' : '[MISSING]'}`);
 console.log(`JWT_SECRET: ${config.jwtSecret ? '[set]' : '[MISSING]'}`);
+console.log(`REFRESH_TOKEN_SECRET: ${config.refreshTokenSecret ? '[set]' : '[MISSING]'}`);
 
 // ✅ Middleware
 app.use(express.json());

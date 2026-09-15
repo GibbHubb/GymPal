@@ -1,19 +1,17 @@
 const db = require('../models/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const config = require('../config/config');
 
-// Ensure secrets are available
-if (!process.env.JWT_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
-  console.error('Missing JWT_SECRET or REFRESH_TOKEN_SECRET in environment variables');
-  process.exit(1);
-}
+// G46 — the required-secret check moved to config.validate(), called at startup in
+// app.js, so it names every missing variable instead of exiting from inside a require.
 
 // Helper function to generate Access Token
 const generateAccessToken = (user) => {
   return jwt.sign(
     { user_id: user.user_id, role: user.role },
     process.env.JWT_SECRET, // This should match the key used in `jwt.verify`
-    { expiresIn: '15m' }
+    { expiresIn: config.jwtExpiresIn }
   );
 };
 
@@ -235,4 +233,5 @@ module.exports = {
   authenticateToken,
   refreshToken,
   savePushToken,
+  generateAccessToken, // G46 — exported so the configured lifetime can be tested
 };

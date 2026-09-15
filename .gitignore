@@ -18,6 +18,8 @@ yarn-error.*
 .env.test.local
 .env.production.local
 .env.*
+# G46 — the example file documents required config and must reach a fresh clone
+!.env.example
 
 # logs
 logs
