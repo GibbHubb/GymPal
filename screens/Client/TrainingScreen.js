@@ -28,8 +28,8 @@ import { computePersonalRecords } from '../../hooks/usePersonalRecords';
 import { mergePersonalBests } from '../../utils/prMath';
 // G36 — derive a workout name (backend rejects a null name with 400)
 import { deriveWorkoutName } from '../../utils/workoutNaming';
+import { SERVER_URL } from '../../config/api';  // G54
 
-const SERVER_URL = 'https://gympalbackend-production.up.railway.app';
 
 
 const TrainingScreen = ({ navigation, route }) => {

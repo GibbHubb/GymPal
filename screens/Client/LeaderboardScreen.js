@@ -9,8 +9,8 @@ import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomHeader from '../../components/CustomHeader';
 import GlassCard from '../../components/GlassCard';
+import { API_URL } from '../../config/api';  // G54
 
-const API_URL = 'https://gympalbackend-production.up.railway.app/api';
 
 
 export default function LeaderboardScreen() {

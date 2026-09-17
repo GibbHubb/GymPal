@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, FlatList } from "react-native"
 import { io } from "socket.io-client"
+import { SERVER_URL } from "../../config/api"  // G54
 
 // Create socket connection
 let socket = null
@@ -41,7 +42,7 @@ const TVScreen = () => {
   const [highlights, setHighlights] = useState({})
   const [lastUpdate, setLastUpdate] = useState(Date.now())
   const [connectionStatus, setConnectionStatus] = useState("Connecting...")
-  const [serverUrl, setServerUrl] = useState("https://gympalbackend-production.up.railway.app")
+  const [serverUrl, setServerUrl] = useState(SERVER_URL)
   const [debugMessages, setDebugMessages] = useState([])
 
   // Add debug message helper

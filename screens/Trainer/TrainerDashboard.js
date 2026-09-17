@@ -15,6 +15,7 @@ import CustomHeader from '../../components/CustomHeader';
 import GlassCard from '../../components/GlassCard';
 import { getClientStats } from '../../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../../config/api';  // G54
 
 // G28 — RAG colors for the compliance chip
 const COMPLIANCE_COLORS = {
@@ -49,7 +50,7 @@ export default function TrainerDashboard() {
       try {
         const token = await AsyncStorage.getItem('token');
         const res = await fetch(
-          'https://gympalbackend-production.up.railway.app/api/trainer-clients/compliance',
+          `${API_URL}/trainer-clients/compliance`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         if (res.ok) {

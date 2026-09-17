@@ -2,9 +2,9 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CommonActions } from '@react-navigation/native';
 
-const API_URL = 'https://gympalbackend-production.up.railway.app/api';
 
 import { navigationRef } from './utils/RootNavigation';
+import { API_URL } from './config/api';  // G54
 // ✅ Get token from storage for Authorization
 const getAuthHeaders = async () => {
   const token = await AsyncStorage.getItem('token');

@@ -25,8 +25,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // server aggregates the baseline. They remain exported from prMath (and unit
 // tested) because they are the reference definition the SQL mirrors.
 import { epley1RM, setVolume } from '../utils/prMath';
+import { API_URL } from '../config/api';  // G54
 
-const API_URL = 'https://gympalbackend-production.up.railway.app/api';
 
 /**
  * G38 — fetch prior bests for every exercise in ONE request.

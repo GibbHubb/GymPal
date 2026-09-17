@@ -8,6 +8,7 @@ import VolumeHeatmap from '../../components/VolumeHeatmap';
 import { getPendingCount } from '../../utils/syncQueue';
 import { fetchTodayProgram, fetchTemplates, deleteTemplate } from '../../api';
 import { useDeloadSignal } from '../../hooks/useDeloadSignal';  // G29
+import { API_URL } from '../../config/api';  // G54
 
 
 const ClientHome = ({ navigation }) => {
@@ -136,7 +137,7 @@ const ClientHome = ({ navigation }) => {
               try {
                 const token = await AsyncStorage.getItem('token');
                 const res = await fetch(
-                  'https://gympalbackend-production.up.railway.app/api/workouts/last',
+                  `${API_URL}/workouts/last`,
                   { headers: { Authorization: `Bearer ${token}` } },
                 );
                 if (res.status === 404) {

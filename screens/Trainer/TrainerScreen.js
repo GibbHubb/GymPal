@@ -8,6 +8,7 @@ import { Theme } from "../../constants/Theme"
 import ScreenWrapper from "../../components/ScreenWrapper"
 import CustomButton from "../../components/CustomButton"
 import { finishGroupWorkout, fetchTemplates, createTemplate, deleteTemplate } from "../../api"
+import { SERVER_URL } from "../../config/api"  // G54
 
 let socket = null
 
@@ -53,7 +54,7 @@ export default function TrainerScreen({ route, navigation }) {
   const [socketConnected, setSocketConnected] = useState(false)
   const [sessionName, setSessionName] = useState("")
   const [sessionActive, setSessionActive] = useState(false)
-  const [serverUrl, setServerUrl] = useState("https://gympalbackend-production.up.railway.app")
+  const [serverUrl, setServerUrl] = useState(SERVER_URL)
   const [debugMessages, setDebugMessages] = useState([])
   const [showDebug, setShowDebug] = useState(false)
   // G1 — client live session state

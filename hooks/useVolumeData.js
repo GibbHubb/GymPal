@@ -4,8 +4,8 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { computeWeekStreak } from '../utils/dateBuckets';
+import { API_URL } from '../config/api';  // G54
 
-const API_URL = 'https://gympalbackend-production.up.railway.app/api';
 
 export function useVolumeData(weeks = 52) {
     const [days, setDays] = useState([]);

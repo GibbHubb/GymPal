@@ -10,6 +10,7 @@ import { View, ActivityIndicator, Platform } from 'react-native';
 import { navigationRef } from './utils/RootNavigation';
 import { Theme } from './constants/Theme';
 import { runSync } from './utils/syncEngine';
+import { API_URL, SERVER_URL } from './config/api';  // G54
 
 // Show notifications in foreground
 Notifications.setNotificationHandler({
@@ -20,7 +21,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const API_URL = 'https://gympalbackend-production.up.railway.app/api';
 
 const GymPalTheme = {
   ...DefaultTheme,
@@ -102,7 +102,7 @@ export default function App() {
     // NetInfo events are synchronous callbacks, but AsyncStorage is async.
     // We bridge this by triggering an async runSync directly from the listener
     // rather than relying on getAuthToken() returning a value synchronously.
-    const API_BASE = 'https://gympalbackend-production.up.railway.app';
+    const API_BASE = SERVER_URL;
     const { default: NetInfo } = require('@react-native-community/netinfo');
     const syncOnConnect = async (state) => {
       if (state.isConnected) {
