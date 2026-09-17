@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from "react-native"
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from "react-native"
 import { io } from "socket.io-client"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { Theme } from "../../constants/Theme"
@@ -483,7 +483,8 @@ export default function TrainerScreen({ route, navigation }) {
     <ScreenWrapper scrollable={false}>
       <View style={styles.container}>
         <View style={styles.topLogoRow}>
-          <Image source={require("../../assets/GymPal.png")} style={styles.logo} />
+          {/* G51 — was require("../../assets/GymPal.png"), a file never committed; a wordmark stands in. */}
+          <Text style={styles.logo}>GymPal</Text>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Text style={styles.backBtnText}>← Back</Text>
           </TouchableOpacity>
@@ -760,7 +761,7 @@ export default function TrainerScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16, backgroundColor: Theme.colors.background },
   topLogoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15, marginTop: 10 },
-  logo: { width: 120, height: 60, resizeMode: "contain" },
+  logo: { ...Theme.typography.title, color: Theme.colors.primary, fontSize: 28 },
   backBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: Theme.colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.glassBorder },
   backBtnText: { color: "#fff", fontSize: 13, fontWeight: '700' },
   header: { ...Theme.typography.title, textAlign: "center", color: Theme.colors.primary, marginBottom: 15 },

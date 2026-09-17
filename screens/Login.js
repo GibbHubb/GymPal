@@ -4,8 +4,8 @@ import {
   Text,
   StyleSheet,
   Alert,
-  ImageBackground,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -14,7 +14,8 @@ import { Theme } from '../constants/Theme';
 import CustomButton from '../components/CustomButton';
 import CustomInput from '../components/CustomInput';
 
-const backgroundImage = require('../imgs/BG.png'); // Ensure the correct path
+// G51 — this required '../imgs/BG.png', a file that was never committed and exists on no
+// machine, so the app could not bundle from any checkout. The theme's own gradient stands in.
 
 export default function LoginScreen({ navigation, refreshAuth }) {
   const [username, setUsername] = useState('');
@@ -47,7 +48,7 @@ export default function LoginScreen({ navigation, refreshAuth }) {
   };
   
   return (
-    <ImageBackground source={backgroundImage} style={styles.background} resizeMode="cover">
+    <LinearGradient colors={Theme.colors.backgroundGradient} style={styles.background}>
       <View style={styles.overlay}>
         <Animated.View style={styles.animatedWrapper} entering={FadeInDown.duration(800).springify()}>
           <BlurView intensity={80} tint="dark" style={styles.contentContainer}>
@@ -80,7 +81,7 @@ export default function LoginScreen({ navigation, refreshAuth }) {
           </BlurView>
         </Animated.View>
       </View>
-    </ImageBackground>
+    </LinearGradient>
   );
 }
 
