@@ -16,58 +16,66 @@ import path from 'path';
 
 const require = createRequire(import.meta.url);
 const express = require('express');
-const { requireSelfOrLinkedTrainer, requireTrainer } = require('../../middleware/authorize.js');
+const { requireSelfOrLinkedTrainer, requireTrainer, AUTHORIZE_GUARD } = require('../../middleware/authorize.js');
 
-// --- Identify "is this handler one of authorize.js's exports?" -------------------------
+// --- Identify "is this handler one of authorize.js's guards?" ---------------------------
 //
-// requireTrainer is exported directly, so a route using it holds the EXACT SAME function
-// reference — identity by `===` works.
-//
-// requireSelfOrLinkedTrainer(paramName) is a FACTORY: every call returns a brand-new closure,
-// so two routes that both correctly call `requireSelfOrLinkedTrainer('user_id')` do NOT hold
-// the same object, and there is no exported symbol to compare against by reference. What IS
-// constant is the closure's SOURCE TEXT: the body reads `req.params[paramName]` (the
-// parameter *name*, not an interpolated literal), so `fn.toString()` is byte-identical no
-// matter what paramName was passed at call time. We derive that fingerprint by calling the
-// real factory from authorize.js (never hand-typed/guessed), then compare every route
-// handler's source text against it. This is what the task means by "identify it by function
-// identity/name exported from authorize.js" without needing to touch authorize.js itself.
-const SELF_OR_LINKED_FINGERPRINT = requireSelfOrLinkedTrainer('__fingerprint_probe__').toString();
-
-function isRequireSelfOrLinkedTrainer(fn) {
-  return typeof fn === 'function' && fn.toString() === SELF_OR_LINKED_FINGERPRINT;
-}
-function isRequireTrainer(fn) {
-  return fn === requireTrainer;
+// G56: this used to compare each handler's SOURCE TEXT against a probe closure. The text is
+// identical whatever param name the factory was given, so `requireSelfOrLinkedTrainer('user_id')`
+// on a `/:clientId` route passed, while at runtime it 400s every caller, owner included.
+// authorize.js now tags every guard with AUTHORIZE_GUARD = { param }, which is both harder to
+// fake by accident and tells us which param the guard reads.
+function guardInfo(fn) {
+  return (typeof fn === 'function' && fn[AUTHORIZE_GUARD]) || null;
 }
 function isAuthorizeGuard(fn) {
-  return isRequireSelfOrLinkedTrainer(fn) || isRequireTrainer(fn);
+  return guardInfo(fn) !== null;
 }
 
-// --- Enumerate an Express Router's registered routes ------------------------------------
-function enumerateRoutes(router) {
-  return router.stack
-    .filter((layer) => layer.route) // skip plain app.use() middleware layers
-    .map((layer) => {
-      const route = layer.route;
-      return {
-        path: route.path,
-        methods: Object.keys(route.methods),
-        handlers: route.stack.map((l) => l.handle),
-      };
-    });
+function routeParams(routePath) {
+  const p = Array.isArray(routePath) ? routePath.join(',') : String(routePath);
+  return [...p.matchAll(/:(\w+)/g)].map((m) => m[1]);
 }
 
-const ID_PARAM_RE = /:(user_id|userId|clientId)\b/;
+/** The guard problem for a route, or null. A guard that reads a param the route does not
+ * have is as bad as no guard. */
+function guardProblem(route) {
+  const guards = route.handlers.map(guardInfo).filter(Boolean);
+  if (guards.length === 0) return 'no requireSelfOrLinkedTrainer/requireTrainer in chain';
+  const params = routeParams(route.path);
+  const wrong = guards.filter((g) => g.param !== null && !params.includes(g.param));
+  if (wrong.length === guards.length) {
+    return `guard reads :${wrong[0].param}, but the route's params are [${params.join(', ')}]`;
+  }
+  return null;
+}
+
+// --- Enumerate an Express Router's registered routes, including nested routers ----------
+// G56: a sub-router mounted with router.use() was invisible to the old top-level walk.
+function enumerateRoutes(router, prefix = '') {
+  const out = [];
+  for (const layer of router.stack) {
+    if (layer.route) {
+      out.push({
+        path: prefix + layer.route.path,
+        methods: Object.keys(layer.route.methods),
+        handlers: layer.route.stack.map((l) => l.handle),
+      });
+    } else if (layer.handle && Array.isArray(layer.handle.stack)) {
+      out.push(...enumerateRoutes(layer.handle, prefix + '<mounted>'));
+    }
+  }
+  return out;
+}
+
+// G56: any param naming a PERSON's id, not only the three exact spellings the first version
+// knew. Ids of other things (:id, :workoutId, :linkId, :exerciseId) are out of scope.
+const ID_PARAM_RE = /:(\w*user_?id|\w*client_?id|\w*trainer_?id|\w*member_?id)\b/i;
 
 // Tracked gaps: an unguarded id route is allowed ONLY with a recorded reason and a ticket.
 // Each entry is also asserted to still be unguarded, so a fix forces its removal here.
-const TRACKED_UNGUARDED = {
-  // G55 — getUserProfile ignores req.params.user_id and always returns the CALLER's profile,
-  // so this is not a live IDOR today; but api.js fetchUserById calls it expecting target-id
-  // semantics (client viewing their trainer), which needs a policy decision before a guard.
-  'usersRoutes.js GET /:user_id': 'G55',
-};
+// (G55's entry was removed when GET /users/:user_id got its guard.)
+const TRACKED_UNGUARDED = {};
 
 function pathHasIdParam(routePath) {
   const p = Array.isArray(routePath) ? routePath.join(',') : String(routePath);
@@ -109,6 +117,37 @@ describe('G44 criterion 5 — checker sanity (positive controls)', () => {
     expect(route.handlers.some(isAuthorizeGuard)).toBe(true);
   });
 
+  it('G56: flags a guard that reads a DIFFERENT param than the route has', () => {
+    const bad = express.Router();
+    bad.get('/:clientId', requireSelfOrLinkedTrainer('user_id'), (req, res) => res.sendStatus(200));
+    const [route] = enumerateRoutes(bad);
+    expect(guardProblem(route)).toMatch(/reads :user_id/);
+  });
+
+  it('G56: accepts the same guard on the param it reads (control for the above)', () => {
+    const good = express.Router();
+    good.get('/:clientId', requireSelfOrLinkedTrainer('clientId'), (req, res) => res.sendStatus(200));
+    const [route] = enumerateRoutes(good);
+    expect(guardProblem(route)).toBeNull();
+  });
+
+  it('G56: an unguarded :client_id / :trainerId route is in scope, not ignored', () => {
+    expect(pathHasIdParam('/:client_id')).toBe(true);
+    expect(pathHasIdParam('/stats/:trainerId')).toBe(true);
+    expect(pathHasIdParam('/:workoutId')).toBe(false);
+    expect(pathHasIdParam('/:linkId')).toBe(false);
+  });
+
+  it('G56: finds an unguarded id route inside a NESTED router', () => {
+    const inner = express.Router();
+    inner.get('/:user_id', (req, res) => res.sendStatus(200));
+    const outer = express.Router();
+    outer.use('/nested', inner);
+    const routes = enumerateRoutes(outer).filter((r) => pathHasIdParam(r.path));
+    expect(routes).toHaveLength(1);
+    expect(guardProblem(routes[0])).toMatch(/no requireSelfOrLinkedTrainer/);
+  });
+
   it('ignores a route whose path has no id param at all (not in scope of criterion 5)', () => {
     const fine = express.Router();
     fine.get('/:id', (req, res) => res.sendStatus(200)); // e.g. an exercise id, not a user id
@@ -148,12 +187,10 @@ describe('G44 criterion 5 — every backend/routes/*.js file', () => {
           });
           continue;
         }
-        it(`${label} has an authorize.js guard in its handler chain`, () => {
+        it(`${label} has an authorize.js guard that reads its own param`, () => {
           const names = route.handlers.map((h) => h.name || '<anonymous>').join(', ');
-          expect(
-            route.handlers.some(isAuthorizeGuard),
-            `${file} ${label}: no requireSelfOrLinkedTrainer/requireTrainer in chain [${names}]`,
-          ).toBe(true);
+          const problem = guardProblem(route);
+          expect(problem, `${file} ${label}: ${problem} [${names}]`).toBeNull();
         });
       }
     });

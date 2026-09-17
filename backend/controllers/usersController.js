@@ -106,26 +106,27 @@ const getUsers = async (req, res) => {
     return res.status(401).json({ message: 'Not authenticated.' });
   }
   const isTrainer = role === 'pt' || role === 'masterPt' || role === 'trainer';
+  // Optional paging + username search, used by /users/all (20 per page, as the screen expects).
+  // Without ?page the full scoped list is returned, as GET /users/ always did.
+  const page = Number.parseInt(req.query && req.query.page, 10);
+  const search = (req.query && typeof req.query.search === 'string') ? req.query.search.trim() : '';
+  const PAGE_SIZE = 20;
   try {
-    let rows;
-    if (isTrainer) {
-      ({ rows } = await db.query(
-        `SELECT user_id, username, role
-           FROM Users
-          WHERE user_id = $1
-             OR user_id IN (
-                  SELECT client_id FROM trainer_clients
-                   WHERE trainer_id = $1 AND status = 'active'
-                )
-          ORDER BY user_id`,
-        [me],
-      ));
-    } else {
-      ({ rows } = await db.query(
-        'SELECT user_id, username, role FROM Users WHERE user_id = $1',
-        [me],
-      ));
+    const params = [me];
+    let where = isTrainer
+      ? `(user_id = $1 OR user_id IN (
+            SELECT client_id FROM trainer_clients WHERE trainer_id = $1 AND status = 'active'))`
+      : 'user_id = $1';
+    if (search) {
+      params.push(`%${search}%`);
+      where += ` AND username ILIKE $${params.length}`;
     }
+    let sql = `SELECT user_id, username, role FROM Users WHERE ${where} ORDER BY user_id`;
+    if (Number.isInteger(page) && page >= 1) {
+      params.push(PAGE_SIZE, (page - 1) * PAGE_SIZE);
+      sql += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
+    }
+    const { rows } = await db.query(sql, params);
     res.status(200).json(rows);
   } catch (err) {
     console.error('Error fetching users:', err.message);
@@ -136,7 +137,11 @@ const getUsers = async (req, res) => {
 // Fetch User Profile
 const getUserProfile = async (req, res) => {
   try {
-    const { user_id } = req.user;
+    // G55 — /users/:user_id reads the requested id (the route's guard has already allowed it);
+    // /users/me has no param and reads the caller.
+    const user_id = req.params && req.params.user_id !== undefined
+      ? Number(req.params.user_id)
+      : req.user.user_id;
 
     const { rows } = await db.query(
       'SELECT user_id, username, role FROM Users WHERE user_id = $1',

@@ -8,6 +8,7 @@ const {
   authenticateToken,
   savePushToken,
 } = require('../controllers/usersController');
+const { requireSelfOrLinkedTrainer } = require('../middleware/authorize');
 
 const router = express.Router();
 
@@ -36,7 +37,14 @@ router.get('/', authenticateToken, getUsers);
 // Get the logged-in user's profile
 router.get('/me', authenticateToken, getUserProfile);
 
-router.get('/:user_id', authenticateToken, getUserProfile);
+// The app's client list (ClientOverview -> fetchUsers) calls /users/all. With no route of its
+// own it fell through to /:user_id and got back one profile object instead of a list. Same
+// scoped list as GET /, paged and searchable. Must be registered BEFORE /:user_id.
+router.get('/all', authenticateToken, getUsers);
+
+// G55 — a profile by id: yourself, or a trainer actively linked to that client
+// (ProfileScreen opens it both ways). It used to ignore the id and return the caller.
+router.get('/:user_id', authenticateToken, requireSelfOrLinkedTrainer('user_id'), getUserProfile);
 
 // G2 — Push token registration
 router.post('/push-token', authenticateToken, savePushToken);

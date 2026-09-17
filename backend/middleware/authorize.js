@@ -10,6 +10,10 @@
 // act on a client only via a `trainer_clients` row with status = 'active'. This centralises it.
 const db = require('../models/db');
 
+// G56 — marks every guard this module produces. The route-coverage test identifies guards by
+// this tag rather than by source text, which could not tell which param a guard reads.
+const AUTHORIZE_GUARD = Symbol.for('gympal.authorizeGuard');
+
 // req.user is set by authenticateToken (the decoded JWT: { user_id, role, ... }).
 
 // The one DB touch, behind a swappable seam. A test overrides `deps.hasActiveLink`
@@ -39,11 +43,11 @@ function isTrainerRole(role) {
  * ACTIVE trainer_clients link to that target. `paramName` is the route param holding the
  * target user id (e.g. 'user_id' or 'userId').
  *
- * Returns 404, not 403, when a trainer is not linked to the target — so the endpoint does
- * not confirm that a given user id exists to someone with no relationship to it.
+ * Returns 403 whether or not the target exists, so the answer does not confirm that a given
+ * user id exists to someone with no relationship to it.
  */
 function requireSelfOrLinkedTrainer(paramName) {
-  return async (req, res, next) => {
+  const guard = async (req, res, next) => {
     const me = requesterId(req);
     if (!me) {
       return res.status(401).json({ message: 'Not authenticated.' });
@@ -75,6 +79,10 @@ function requireSelfOrLinkedTrainer(paramName) {
       return res.status(500).json({ message: 'Internal server error' });
     }
   };
+  // G56 — tag the guard with the param it reads, so the route test can check it matches the
+  // route (a guard on the wrong param 400s every caller, the data's owner included).
+  guard[AUTHORIZE_GUARD] = { param: paramName };
+  return guard;
 }
 
 /** Allow only trainer-role callers (for endpoints that list or aggregate across clients). */
@@ -88,4 +96,6 @@ function requireTrainer(req, res, next) {
   return next();
 }
 
-module.exports = { requireSelfOrLinkedTrainer, requireTrainer, isTrainerRole, deps };
+requireTrainer[AUTHORIZE_GUARD] = { param: null };
+
+module.exports = { requireSelfOrLinkedTrainer, requireTrainer, isTrainerRole, deps, AUTHORIZE_GUARD };
