@@ -13,12 +13,14 @@ const {
     getLastWorkout,      // G30 — repeat last
 } = require('../controllers/workoutsController');
 const { authenticateToken } = require('../controllers/usersController');
+const { validate } = require('../middleware/validate');
+const schemas = require('../schemas/workouts');
 
 const router = express.Router();
 
 // Define routes
 router.get('/', authenticateToken, getWorkouts);
-router.post('/', authenticateToken, createWorkout);
+router.post('/', authenticateToken, validate(schemas.createWorkout), createWorkout);
 router.get('/history', authenticateToken, getWorkoutHistory);
 // G11 — must register before /:id so it isn't shadowed
 router.get('/trainer/client-stats', authenticateToken, getClientStats);
@@ -30,7 +32,7 @@ router.get('/assigned', authenticateToken, getAssignedWorkouts);
 router.get('/progress/:exerciseId', authenticateToken, getExerciseProgress);
 // G38 — batch baselines for PR detection; POST because the id list can be long.
 // Registered before /:id so it isn't shadowed.
-router.post('/pr-baselines', authenticateToken, getPrBaselines);
+router.post('/pr-baselines', authenticateToken, validate(schemas.getPrBaselines), getPrBaselines);
 router.get('/suggested-weights/:workoutId', authenticateToken, getSuggestedWeights); // New route
 router.get('/:id', authenticateToken, getWorkoutDetails);
 

@@ -1,6 +1,8 @@
 const http    = require('http');
 const express = require('express');
 const cors    = require('cors');
+const helmet  = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { Server } = require('socket.io');
 require('dotenv').config();
 const db     = require('./models/db');
@@ -11,16 +13,56 @@ const socketHandlers = require('./socket-io-handlers');
 const app = express();
 const PORT = config.port || 5000;
 
-// ✅ CORS Configuration (Ensure this is before your routes)
-app.use(cors({
-    origin: true, // true reflects the Request Origin, accommodating credentials: true safely
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+// G49 — Railway (and most PaaS) sit behind a reverse proxy, so req.ip is the proxy's
+// address unless the app trusts X-Forwarded-For. Without this, express-rate-limit below
+// sees every request as coming from one IP and locks everyone out together, or — worse —
+// silently under-counts because IPv6-mapped proxy chains confuse the default key.
+app.set('trust proxy', 1);
+
+// G49 — helmet's security headers (X-Content-Type-Options, etc.). This app serves only
+// JSON (no HTML/bundle is served from here — the RN/web bundle and landing page are
+// deployed separately), so helmet's default CSP has nothing to break and is left on.
+app.use(helmet());
+
+// G49 — replaced `origin: true`, which reflected whatever Origin header the caller sent
+// (the comment here used to claim that "accommodates credentials safely" — it does the
+// opposite: origin:true + credentials:true is exactly the combination the CORS spec exists
+// to prevent). Now an explicit allowlist from config.corsOrigins (see config/config.js).
+// Mobile app builds send no Origin header at all and are unaffected either way.
+const corsOptions = {
+    origin(origin, callback) {
+        // No Origin header (native apps, curl, server-to-server) — allow; there is no
+        // browser enforcing same-origin here for CORS to protect against.
+        if (!origin) return callback(null, true);
+        if (config.corsOrigins.includes(origin)) return callback(null, true);
+        return callback(null, false);
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-}));
+};
+
+// ✅ CORS Configuration (Ensure this is before your routes)
+app.use(cors(corsOptions));
 
 // ✅ Ensure preflight requests (OPTIONS) are handled properly
-app.options('*', cors());
+app.options('*', cors(corsOptions));
+
+// G49 — brute-force / CPU-exhaustion guard on the two auth routes that do a bcrypt
+// compare or issue tokens with no other rate control. Scoped tightly (not applied
+// globally) so a legitimate heavy sync session elsewhere is never throttled.
+const authLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    limit: 10,            // 10 requests/minute/IP; the 11th in the window is rejected
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many attempts. Try again in a minute.' },
+});
+// /register belongs here too: it is unauthenticated and runs bcrypt at cost 10
+// before an INSERT, which is the CPU-exhaustion shape this limiter exists for.
+// One array, so the next expensive public route is an edit here rather than a
+// third copied line (review, 2026-09-24).
+app.use(['/api/users/login', '/api/users/refresh', '/api/users/register'], authLimiter);
 
 // G46 — this block used to print DATABASE_URL and JWT_SECRET in plaintext on every
 // boot, which on Railway lands in the deployment logs (a live secret exposure).
@@ -89,9 +131,13 @@ app.use((err, req, res, next) => {
 
 // ✅ HTTP server + Socket.IO
 const server = http.createServer(app);
+// The same allowlist as the HTTP surface. `origin: true` here reflected ANY
+// origin while sending credentials — the exact pattern the CORS fix above
+// removed, surviving 70 lines below it on a second, unaudited path. One
+// function, both surfaces (review, 2026-09-24).
 const io = new Server(server, {
     cors: {
-        origin:      true,
+        origin:      corsOptions.origin,
         methods:     ['GET', 'POST'],
         credentials: true,
     },

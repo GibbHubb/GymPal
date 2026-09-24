@@ -10,6 +10,8 @@ const {
     todayForClient,
 } = require('../controllers/programsController');
 const { authenticateToken } = require('../controllers/usersController');
+const { validate } = require('../middleware/validate');
+const schemas = require('../schemas/programs');
 
 const router = express.Router();
 
@@ -18,11 +20,11 @@ const router = express.Router();
 router.get('/today', authenticateToken, todayForClient);
 
 router.get('/', authenticateToken, listPrograms);
-router.post('/', authenticateToken, createProgram);
+router.post('/', authenticateToken, validate(schemas.createProgram), createProgram);
 router.get('/:id', authenticateToken, getProgram);
 router.delete('/:id', authenticateToken, deleteProgram);
 
-router.put('/:id/days', authenticateToken, upsertProgramDay);
-router.post('/:id/assign', authenticateToken, assignProgram);
+router.put('/:id/days', authenticateToken, validate(schemas.upsertProgramDay), upsertProgramDay);
+router.post('/:id/assign', authenticateToken, validate(schemas.assignProgram), assignProgram);
 
 module.exports = router;

@@ -8,15 +8,17 @@ const {
     searchExercises,
 } = require('../controllers/exercisesController');
 const { authenticateToken } = require('../controllers/usersController');
+const { validate } = require('../middleware/validate');
+const schemas = require('../schemas/exercises');
 
 const router = express.Router();
 
 // Exercise Routes
 router.get('/search', authenticateToken, searchExercises); // Search exercises
 router.get('/', authenticateToken, getExercises); // Fetch all exercises
-router.post('/', authenticateToken, createExercise); // Add a new exercise
+router.post('/', authenticateToken, validate(schemas.createExercise), createExercise); // Add a new exercise
 router.get('/:id', authenticateToken, getExerciseById); // Fetch exercise by ID
-router.put('/:id', authenticateToken, updateExercise); // Update an exercise
+router.put('/:id', authenticateToken, validate(schemas.updateExercise), updateExercise); // Update an exercise
 router.delete('/:id', authenticateToken, deleteExercise); // Delete an exercise
 
 module.exports = router;

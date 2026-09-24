@@ -5,12 +5,14 @@ const {
 } = require('../controllers/lifestyleDataController');
 const { authenticateToken } = require('../controllers/usersController');
 const { requireSelfOrLinkedTrainer } = require('../middleware/authorize');
+const { validate } = require('../middleware/validate');
+const schemas = require('../schemas/lifestyleData');
 
 const router = express.Router();
 
 // Routes for Lifestyle Data
 // G44 — same IDOR shape: stress/sleep/soreness are another user's data.
 router.get('/:user_id', authenticateToken, requireSelfOrLinkedTrainer('user_id'), getLifestyleData);
-router.post('/', authenticateToken, addLifestyleData); // Add new lifestyle data for a user
+router.post('/', authenticateToken, validate(schemas.addLifestyleData), addLifestyleData); // Add new lifestyle data for a user
 
 module.exports = router;

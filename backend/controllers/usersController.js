@@ -70,6 +70,24 @@ const loginUser = async (req, res) => {
 
 
 // Create User
+/** The role a caller is ALLOWED to grant, which is not the role they asked for.
+ *  Only a signed-in trainer/masterPt may create anything other than a client —
+ *  /register is public, so a self-assigned `role` is a privilege escalation
+ *  (found during G49). An absent or invalid token is not an error here: it just
+ *  means the caller is the public signup path. */
+const grantableRole = (req, requested) => {
+  if (!requested || requested === 'client') return 'client';
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return 'client';
+  try {
+    const caller = jwt.verify(token, process.env.JWT_SECRET);
+    return ['trainer', 'masterPt'].includes(caller.role) ? requested : 'client';
+  } catch {
+    return 'client';
+  }
+};
+
 const createUser = async (req, res) => {
   const { username, password, role } = req.body;
 
@@ -82,7 +100,7 @@ const createUser = async (req, res) => {
 
     const { rows } = await db.query(
       'INSERT INTO Users (username, password, role) VALUES ($1, $2, $3) RETURNING user_id, username, role',
-      [username, hashedPassword, role || 'client']
+      [username, hashedPassword, grantableRole(req, role)]
     );
 
     res.status(201).json({

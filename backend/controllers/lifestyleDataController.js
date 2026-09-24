@@ -33,6 +33,9 @@ const getLifestyleData = async (req, res) => {
 
 
 // Add New Lifestyle Data
+// G49 — this had NO body validation at all (`{stress: "banana"}` reached the pg driver and
+// came back a 500). schemas/lifestyleData.js's addLifestyleData now type/range-checks all
+// five fields before this handler runs — there was no ad-hoc check here to remove.
 const addLifestyleData = async (req, res) => {
   const { user_id } = req.user; // Make sure `user_id` is extracted from the decoded token
   const { stress, sleep, soreness, calories, weight } = req.body;

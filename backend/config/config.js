@@ -32,6 +32,26 @@ function safeAccessTokenTtl(raw) {
     return raw;
 }
 
+// G49 — the CORS allowlist, replacing `origin: true` (which reflected any caller's Origin
+// header — see app.js). Comma-separated in CORS_ORIGINS; always includes the local Expo
+// web / react-native-web dev origins so `npm run web` keeps working with no .env change.
+// Mobile app builds (iOS/Android) never send an Origin header at all, so they are
+// unaffected either way — this only gates browser-origin callers.
+const DEFAULT_DEV_ORIGINS = [
+    'http://localhost:8081',
+    'http://localhost:19006',
+    'http://127.0.0.1:8081',
+    'http://127.0.0.1:19006',
+];
+
+function parseCorsOrigins(raw) {
+    const fromEnv = (raw || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    return [...new Set([...DEFAULT_DEV_ORIGINS, ...fromEnv])];
+}
+
 // G46 — the variables the server cannot run without. Checked once at startup so a
 // missing one fails loudly by NAME, instead of at the first request that needs it.
 const REQUIRED = ['DATABASE_URL', 'JWT_SECRET', 'REFRESH_TOKEN_SECRET'];
@@ -62,6 +82,10 @@ module.exports = {
     // ACCESS_TOKEN_MAX_SECONDS is refused (with a warning) in favour of the safe default.
     jwtExpiresIn: safeAccessTokenTtl(process.env.JWT_EXPIRES_IN),
     nodeEnv: process.env.NODE_ENV || 'development', // Environment mode
+    // G49 — CORS allowlist. CORS_ORIGINS is a comma-separated list of extra origins
+    // (the landing page's production domain, a preview deploy, etc.) on top of the
+    // always-on local dev origins above.
+    corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS),
     REQUIRED,
     missingRequired,
     validate,
@@ -70,4 +94,7 @@ module.exports = {
     DEFAULT_ACCESS_TOKEN_TTL,
     ttlSeconds,
     safeAccessTokenTtl,
+    // exported for tests
+    parseCorsOrigins,
+    DEFAULT_DEV_ORIGINS,
 };

@@ -17,11 +17,11 @@ const createWorkout = async (req, res) => {
   const { user_id } = req.user; // Get the user ID from the authenticated token
   const { name, date, notes, exercises, client_id } = req.body;
 
-  if (!Array.isArray(exercises) || exercises.length === 0) {
-    return res.status(400).json({
-      message: 'Invalid input: "exercises" is a required field.',
-    });
-  }
+  // G49 — the "exercises is a non-empty array of {exercise_id, sets:[...]}" shape is now
+  // enforced by schemas/workouts.js's createWorkout schema (validate() runs before this
+  // handler and 400s a bad body before it gets here), so the presence/type check that used
+  // to live here is redundant. The G36 name fallback below is NOT redundant — it's a
+  // deliberate behaviour, not a validation gap, and stays.
 
   // G36 — `name` is no longer a hard requirement. The client now derives one
   // (utils/workoutNaming.deriveWorkoutName), but sessions queued offline

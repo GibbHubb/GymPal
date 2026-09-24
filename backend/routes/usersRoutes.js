@@ -9,6 +9,8 @@ const {
   savePushToken,
 } = require('../controllers/usersController');
 const { requireSelfOrLinkedTrainer } = require('../middleware/authorize');
+const { validate } = require('../middleware/validate');
+const schemas = require('../schemas/users');
 
 const router = express.Router();
 
@@ -17,13 +19,13 @@ const router = express.Router();
  */
 
 // User login
-router.post('/login', loginUser);
+router.post('/login', validate(schemas.loginUser), loginUser);
 
 // Register a new user
-router.post('/register', createUser);
+router.post('/register', validate(schemas.createUser), createUser);
 
 // Refresh token
-router.post('/refresh', refreshToken);
+router.post('/refresh', validate(schemas.refreshToken), refreshToken);
 
 /**
  * Protected Routes (requires authentication)
@@ -47,6 +49,6 @@ router.get('/all', authenticateToken, getUsers);
 router.get('/:user_id', authenticateToken, requireSelfOrLinkedTrainer('user_id'), getUserProfile);
 
 // G2 — Push token registration
-router.post('/push-token', authenticateToken, savePushToken);
+router.post('/push-token', authenticateToken, validate(schemas.savePushToken), savePushToken);
 
 module.exports = router;

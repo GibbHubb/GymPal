@@ -12,6 +12,8 @@ const {
     searchWorkouts
 } = require('../controllers/groupWorkoutsController');
 const { authenticateToken } = require('../controllers/usersController');
+const { validate } = require('../middleware/validate');
+const schemas = require('../schemas/groupWorkouts');
 
 const router = express.Router();
 
@@ -22,9 +24,9 @@ router.get('/last10', authenticateToken, getLast10Workouts); // G44 — was unau
 router.get('/most-used', authenticateToken, getMostUsedWorkouts); // G44 — was unauthenticated
 router.get('/search', authenticateToken, searchWorkouts);
 router.get('/:id', authenticateToken, getGroupWorkoutDetails);
-router.post('/', authenticateToken, createGroupWorkout);
-router.post('/edit/:id', authenticateToken, editGroupWorkout); // ✅ Edit Workout Route
-router.post('/finish/:id', authenticateToken, finishGroupWorkout); // ✅ Finish Workout Route
+router.post('/', authenticateToken, validate(schemas.createGroupWorkout), createGroupWorkout);
+router.post('/edit/:id', authenticateToken, validate(schemas.editGroupWorkout), editGroupWorkout); // ✅ Edit Workout Route
+router.post('/finish/:id', authenticateToken, validate(schemas.finishGroupWorkout), finishGroupWorkout); // ✅ Finish Workout Route
 router.get('/', authenticateToken, getGroupWorkouts);
 
 module.exports = router;
