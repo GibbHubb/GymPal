@@ -72,6 +72,11 @@ export function installAuthRefresh(instance, { getTokens, setTokens, requestRefr
         return Promise.reject(new SessionExpiredError());
       }
       config._retried = true;
+      // Sent with a token that has since been replaced (another request refreshed while this
+      // one was in flight): replay with the current token instead of refreshing again.
+      const sent = String((config.headers && config.headers.Authorization) || '').replace(/^Bearer /, '');
+      const { token: current } = await getTokens();
+      if (current && current !== sent) return instance(config);
       try {
         await refresh();
       } catch (err) {

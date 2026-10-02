@@ -3,6 +3,8 @@
 # The repo is public, so GitHub Actions minutes are free and unlimited; every branch runs.
 # Each job writes a vitest JSON report and assert-test-count.mjs fails the job if no tests
 # ran, any failed, or any were skipped (a suite skipped for want of a database is not a pass).
+# The --min-files/--min-tests floors are a tripwire against a matcher that finds nothing;
+# raise them when a suite grows a lot, never lower them to make a run pass.
 name: CI
 
 on:
@@ -10,8 +12,10 @@ on:
   pull_request:
     branches: [main]
 
+# Keyed on the branch, not github.ref: a PR's push run and its pull_request run share a
+# group, so the duplicate is cancelled instead of running twice.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:

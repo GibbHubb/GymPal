@@ -156,7 +156,7 @@ docker run -d --name gympal-test-pg -e POSTGRES_USER=gympal -e POSTGRES_PASSWORD
 TEST_DATABASE_URL=postgres://gympal:gympal@127.0.0.1:55432/gympal_test npm --prefix backend test
 ```
 
-The database name must contain `test`: the fixtures drop and recreate their tables.
+The database must be local and its name must end in `_test`: the fixtures drop and recreate their tables.
 
 ---
 

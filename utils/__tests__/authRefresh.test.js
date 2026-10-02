@@ -91,6 +91,22 @@ describe('installAuthRefresh', () => {
     expect(h.onSessionExpired).toHaveBeenCalledTimes(1);
   });
 
+  it('a 401 for a token that was ALREADY replaced replays without a second refresh', async () => {
+    const h = harness();
+    const base = h.instance.defaults.adapter;
+    h.instance.defaults.adapter = async (config) => {
+      // '/late' leaves with the old token but its 401 arrives after the refresh is DONE.
+      if (config.url === '/late') await new Promise((r) => setTimeout(r, 100));
+      return base(config);
+    };
+    const late = h.instance.get('/late');
+    await h.instance.get('/first'); // 401 -> refresh (20 ms) -> replay; inflight cleared
+    expect(h.refreshCount()).toBe(1);
+    await expect(late).resolves.toMatchObject({ status: 200 });
+    expect(h.refreshCount()).toBe(1); // replayed with 'fresh', no second refresh
+    expect(h.log.filter((l) => l.startsWith('/late'))).toEqual(['/late expired', '/late fresh']);
+  });
+
   it('a non-401 error passes through untouched', async () => {
     const h = harness();
     h.instance.defaults.adapter = async (config) => { throw fail(config, 403); };

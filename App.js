@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AppNavigator from './screens/Navigation';
@@ -10,9 +9,10 @@ import { View, ActivityIndicator, Platform } from 'react-native';
 import { navigationRef } from './utils/RootNavigation';
 import { Theme } from './constants/Theme';
 import { runSync } from './utils/syncEngine';
-import { API_URL, SERVER_URL } from './config/api';  // G54
+import { SERVER_URL } from './config/api';  // G54
 import { authApi, SessionExpiredError } from './api';  // G47
 import { getTokens, clearSession } from './utils/session';  // G47
+import { checkSession } from './utils/authCheck';  // G47 review
 
 // Show notifications in foreground
 Notifications.setNotificationHandler({
@@ -34,7 +34,7 @@ const GymPalTheme = {
 };
 
 // G2 — request permission + register Expo push token with the backend
-async function registerPushToken(authToken) {
+async function registerPushToken() {
   try {
     if (!Device.isDevice) return; // push not available in emulator
     const { status: existing } = await Notifications.getPermissionsAsync();
@@ -48,11 +48,7 @@ async function registerPushToken(authToken) {
     const tokenData = await Notifications.getExpoPushTokenAsync();
     const expo_push_token = tokenData.data;
 
-    await axios.post(
-      `${API_URL}/users/push-token`,
-      { expo_push_token },
-      { headers: { Authorization: `Bearer ${authToken}` } },
-    );
+    await authApi.post('/users/push-token', { expo_push_token });  // G47 review — refresh-aware
   } catch (err) {
     console.warn('[push] Token registration failed:', err.message);
   }
@@ -71,18 +67,13 @@ export default function App() {
   // the refresh-aware client (an expired access token is refreshed transparently), log out
   // only when the SESSION is rejected, and stay signed in when the server is merely
   // unreachable, so an offline cold start keeps the user's session and queue.
+  // The decision lives in utils/authCheck.js (tested).
   const refreshAuth = async () => {
     try {
-      const { token, refreshToken } = await getTokens();
       const role = await AsyncStorage.getItem('role');
-
-      if (!token && !refreshToken) throw new SessionExpiredError('No session');
-
-      try {
-        await authApi.get('/users/me');
-      } catch (err) {
-        const status = err?.response?.status;
-        if (err instanceof SessionExpiredError || (status >= 400 && status < 500)) throw err;
+      const verdict = await checkSession({ getTokens, fetchMe: () => authApi.get('/users/me') });
+      if (verdict === 'signed-out') throw new SessionExpiredError('Session rejected');
+      if (verdict === 'unverified') {
         console.warn('⚠️ Auth check could not reach the server; keeping the stored session.');
       }
 
@@ -94,7 +85,7 @@ export default function App() {
 
       // G2 — register Expo push token
       const current = await getTokens();
-      if (current.token) registerPushToken(current.token);
+      if (current.token) registerPushToken();
     } catch (error) {
       console.warn("❌ Token check failed:", error.message);
       await clearSession();  // session keys only; the offline queue survives

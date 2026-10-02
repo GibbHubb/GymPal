@@ -4,12 +4,11 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authApi } from '../../api';  // G47 review
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomHeader from '../../components/CustomHeader';
 import GlassCard from '../../components/GlassCard';
-import { API_URL } from '../../config/api';  // G54
 
 
 
@@ -23,12 +22,7 @@ export default function LeaderboardScreen() {
     setLoading(true);
     setError(null);
     try {
-      const token = await AsyncStorage.getItem('token');
-      const res = await fetch(`${API_URL}/leaderboard/weekly`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const body = await res.json();
+      const { data: body } = await authApi.get('/leaderboard/weekly');  // G47 review — refresh-aware client
       setRows(body.rows || []);
       setOptedIn(!!body.opted_in);
     } catch (err) {
@@ -43,12 +37,7 @@ export default function LeaderboardScreen() {
   const toggleOptIn = async () => {
     const next = !optedIn;
     try {
-      const token = await AsyncStorage.getItem('token');
-      await fetch(`${API_URL}/leaderboard/opt-in`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ opt_in: next }),
-      });
+      await authApi.patch('/leaderboard/opt-in', { opt_in: next });  // G47 review — refresh-aware client
       setOptedIn(next);
       load();
     } catch (err) {

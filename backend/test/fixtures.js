@@ -4,7 +4,7 @@
 // an authorization test that mocks the query passes while the actual SQL selects the
 // wrong rows, and selecting the wrong rows is the bug class under test.
 //
-// TEST_DATABASE_URL must name a database whose name contains "test". The schema step
+// TEST_DATABASE_URL must be a LOCAL database whose name ends in _test. The schema step
 // DROPs tables, so refusing anything else is the guard against pointing this at a real
 // database by accident.
 //
@@ -22,12 +22,22 @@ const FIXTURE_PASSWORD = 'fixture-password';
 
 const TEST_DB_URL = process.env.TEST_DATABASE_URL || '';
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+
 function assertDisposable(url) {
-  const name = new URL(url).pathname.replace(/^\//, '');
-  if (!/test/i.test(name)) {
+  const u = new URL(url);
+  const name = u.pathname.replace(/^\//, '');
+  // Two conditions, because the schema step DROPs tables: a LOCAL server (the CI service
+  // container or a local docker run), and a database whose name ends in _test.
+  if (!LOCAL_HOSTS.has(u.hostname)) {
+    throw new Error(
+      `TEST_DATABASE_URL points at host "${u.hostname}". The test schema DROPs tables, so only ` +
+      'a local database (localhost / 127.0.0.1) is accepted.');
+  }
+  if (!/_test$/i.test(name)) {
     throw new Error(
       `TEST_DATABASE_URL points at database "${name}". The test schema DROPs tables, so the ` +
-      'database name must contain "test".');
+      'database name must end in "_test".');
   }
 }
 

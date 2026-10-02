@@ -2,9 +2,8 @@
 // Endpoint: GET /api/workouts/heatmap?weeks=52 → { weeks, days: [{day,sets,exercise_count}] }
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authApi } from '../api';  // G47 review
 import { computeWeekStreak } from '../utils/dateBuckets';
-import { API_URL } from '../config/api';  // G54
 
 
 export function useVolumeData(weeks = 52) {
@@ -15,12 +14,7 @@ export function useVolumeData(weeks = 52) {
     const load = useCallback(async () => {
         setError(null);
         try {
-            const token = await AsyncStorage.getItem('token');
-            const res = await fetch(`${API_URL}/workouts/heatmap?weeks=${weeks}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const body = await res.json();
+            const { data: body } = await authApi.get('/workouts/heatmap', { params: { weeks } });  // G47 review — refresh-aware client
             setDays(Array.isArray(body.days) ? body.days : []);
         } catch (err) {
             console.warn('[G15] heatmap fetch failed:', err.message);

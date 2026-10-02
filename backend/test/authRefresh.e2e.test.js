@@ -16,6 +16,10 @@ if (!HAVE_DB && process.env.CI) {
   throw new Error('TEST_DATABASE_URL is not set in CI; the refresh e2e suite cannot run.');
 }
 
+// These env writes are process-wide. They are safe because vitest runs each test FILE in its
+// own process/worker with a fresh require cache (the default `isolate: true`) and
+// backend/vitest.config.mjs sets fileParallelism: false. Do not switch this suite to
+// `isolate: false` or a shared pool: authz.test.js would inherit 2-second tokens.
 if (HAVE_DB) process.env.DATABASE_URL = TEST_DB_URL;
 process.env.JWT_SECRET ||= 'test-jwt-secret-g47';
 process.env.REFRESH_TOKEN_SECRET ||= 'test-refresh-secret-g47';

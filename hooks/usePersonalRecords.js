@@ -2,11 +2,9 @@
 //
 // NOTE: despite the `use*` filename (kept to match the plan), this is an
 // imperative async helper, not a React render hook — it is called from
-// TrainingScreen.finishWorkout, not during render. It mirrors the
-// useVolumeData fetch pattern (raw fetch + Bearer token) rather than the
-// utils/api module, so it was unaffected by the bad-import-path issue (G35)
-// that other screens had (they imported from a nonexistent '../../utils/api'
-// instead of the tracked root api.js).
+// TrainingScreen.finishWorkout, not during render. Since the G47 review it
+// calls the backend through api.js's refresh-aware client (it used a raw
+// fetch with the stored token, which expires 15 minutes after login).
 //
 // Compares the just-finished session's best estimated-1RM and best single-set
 // volume against the user's prior bests. Because PRs are computed from the
@@ -21,11 +19,11 @@
 // formulas as prMath (parity pinned by utils/__tests__/prBaselineParity).
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authApi } from '../api';  // G47 review
 // G38 — bestEpleyOfRows/bestVolumeOfRows are no longer used here now that the
 // server aggregates the baseline. They remain exported from prMath (and unit
 // tested) because they are the reference definition the SQL mirrors.
 import { epley1RM, setVolume } from '../utils/prMath';
-import { API_URL } from '../config/api';  // G54
 
 
 /**
@@ -50,16 +48,7 @@ import { API_URL } from '../config/api';  // G54
  */
 async function fetchBaselines(exerciseIds, token) {
   try {
-    const res = await fetch(`${API_URL}/workouts/pr-baselines`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ exercise_ids: exerciseIds }),
-    });
-    if (!res.ok) return new Map();
-    const rows = await res.json();
+    const { data: rows } = await authApi.post('/workouts/pr-baselines', { exercise_ids: exerciseIds });  // G47 review — refresh-aware client
     if (!Array.isArray(rows)) return new Map();
     return new Map(
       rows

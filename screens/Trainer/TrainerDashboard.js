@@ -13,9 +13,7 @@ import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomHeader from '../../components/CustomHeader';
 import GlassCard from '../../components/GlassCard';
-import { getClientStats } from '../../api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL } from '../../config/api';  // G54
+import { getClientStats, authApi } from '../../api';
 
 // G28 — RAG colors for the compliance chip
 const COMPLIANCE_COLORS = {
@@ -48,13 +46,9 @@ export default function TrainerDashboard() {
       // G28 — fan out a compliance fetch alongside the stats so the
       // card render has both numbers in one paint.
       try {
-        const token = await AsyncStorage.getItem('token');
-        const res = await fetch(
-          `${API_URL}/trainer-clients/compliance`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        if (res.ok) {
-          const body = await res.json();
+        const res = await authApi.get('/trainer-clients/compliance');  // G47 review — refresh-aware client
+        {
+          const body = res.data;
           const map = {};
           for (const c of body.clients || []) map[c.user_id] = c;
           setCompliance(map);

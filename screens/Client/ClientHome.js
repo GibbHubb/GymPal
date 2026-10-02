@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, Alert, TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearSession } from '../../utils/session';  // G47
+import { authApi } from '../../api';  // G47 review
 import { Theme } from '../../constants/Theme';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -9,7 +9,6 @@ import VolumeHeatmap from '../../components/VolumeHeatmap';
 import { getPendingCount } from '../../utils/syncQueue';
 import { fetchTodayProgram, fetchTemplates, deleteTemplate } from '../../api';
 import { useDeloadSignal } from '../../hooks/useDeloadSignal';  // G29
-import { API_URL } from '../../config/api';  // G54
 
 
 const ClientHome = ({ navigation }) => {
@@ -136,17 +135,16 @@ const ClientHome = ({ navigation }) => {
             title="🔁 Repeat last"
             onPress={async () => {
               try {
-                const token = await AsyncStorage.getItem('token');
-                const res = await fetch(
-                  `${API_URL}/workouts/last`,
-                  { headers: { Authorization: `Bearer ${token}` } },
-                );
-                if (res.status === 404) {
-                  Alert.alert('No previous workout', 'Log at least one workout first.');
-                  return;
+                let last;
+                try {
+                  last = (await authApi.get('/workouts/last')).data;  // G47 review — refresh-aware client
+                } catch (e) {
+                  if (e.response && e.response.status === 404) {
+                    Alert.alert('No previous workout', 'Log at least one workout first.');
+                    return;
+                  }
+                  throw e;
                 }
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const last = await res.json();
                 navigation.navigate('TrainingScreen', { prefill: last });
               } catch (err) {
                 Alert.alert('Could not load', String(err.message || err));
