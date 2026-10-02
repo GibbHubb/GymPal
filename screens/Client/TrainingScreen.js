@@ -16,9 +16,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { io } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import 'react-native-get-random-values'; // required for uuid in React Native
-import { fetchExercises, createTemplate } from '../../api';
-import { enqueue, getPendingCount } from '../../utils/syncQueue';
-import { runSync } from '../../utils/syncEngine';
+import { fetchExercises, createTemplate, refreshSession } from '../../api';
+import { enqueue, getPendingCount, getFailedCount } from '../../utils/syncQueue';
+import { syncQueued } from '../../utils/sessionSync';  // G48
+import { tokenUserId } from '../../utils/jwt';  // G58
 // G14 — between-batch rest timer
 import { useRestTimer } from '../../hooks/useRestTimer';
 import RestTimer from '../../components/RestTimer';
@@ -46,6 +47,8 @@ const TrainingScreen = ({ navigation, route }) => {
   // G3 — offline sync state
   const [syncStatus, setSyncStatus] = useState(null); // null | 'pending' | 'synced' | 'failed'
   const [pendingCount, setPendingCount] = useState(0);
+  // G48 — workouts that exhausted their automatic retries; shown so they are never silent
+  const [failedCount, setFailedCount] = useState(0);
   // G9 — personal best banner state
   const [personalBests, setPersonalBests] = useState([]);
   // G34 — client-computed per-exercise PR banner state (1RM + volume)
@@ -92,8 +95,19 @@ const TrainingScreen = ({ navigation, route }) => {
   }, [route?.params?.prefill]);
 
   const loadPendingCount = async () => {
-    const count = await getPendingCount();
-    setPendingCount(count);
+    const [pending, failed] = await Promise.all([getPendingCount(), getFailedCount()]);
+    setPendingCount(pending);
+    setFailedCount(failed);
+    return { pending, failed };
+  };
+
+  // G48 — "Sync now": an explicit sync also retries items past their automatic attempts.
+  const retryFailed = async () => {
+    try {
+      await syncQueued(SERVER_URL, refreshSession, { explicit: true });
+    } catch { /* counts below say what is left */ }
+    const { pending, failed } = await loadPendingCount();
+    setSyncStatus(pending === 0 && failed === 0 ? 'synced' : 'failed');
   };
 
   const initSocket = async () => {
@@ -283,8 +297,9 @@ const finishWorkout = async () => {
   setSyncStatus('pending');
 
   try {
-      const user_id = await AsyncStorage.getItem('user_id');
       const authToken = await AsyncStorage.getItem('token');
+      // G58 — sessions from before G47 never stored user_id; the token carries it.
+      const user_id = (await AsyncStorage.getItem('user_id')) || tokenUserId(authToken);
 
       if (!user_id) {
           Alert.alert('Error', 'User ID not found');
@@ -335,8 +350,11 @@ const finishWorkout = async () => {
 
       // Try to sync immediately if online. G9 — surface any PBs detected by server.
       try {
-          const result = await runSync(SERVER_URL, authToken);
-          setSyncStatus('synced');
+          // G48 — refreshes an expired token instead of sending the stale stored one.
+          const result = await syncQueued(SERVER_URL, refreshSession);
+          // runSync never throws per item, so "it returned" is not "it synced": ask the queue.
+          const left = (await getPendingCount()) + (await getFailedCount());
+          setSyncStatus(result && !result.authFailed && left === 0 ? 'synced' : 'failed');
           if (result && Array.isArray(result.personalBests) && result.personalBests.length > 0) {
               // G39 — the client volume PR and the server PB are the same
               // computation; show the server one only where the client had none.
@@ -416,10 +434,23 @@ const finishWorkout = async () => {
           <Text style={styles.syncBadgeText}>✓ Synced</Text>
         </View>
       )}
-      {syncStatus === 'failed' && (
+      {syncStatus === 'failed' && failedCount === 0 && (
         <View style={[styles.syncBadge, styles.syncBadgeFailed]}>
           <Text style={styles.syncBadgeText}>⚠ Sync failed — will retry when online</Text>
         </View>
+      )}
+      {/* G48 — items past their automatic retries: visible, and one tap retries them */}
+      {failedCount > 0 && (
+        <TouchableOpacity
+          style={[styles.syncBadge, styles.syncBadgeFailed]}
+          onPress={retryFailed}
+          accessibilityRole="button"
+          accessibilityLabel={`${failedCount} workout${failedCount > 1 ? 's' : ''} could not sync. Tap to retry.`}
+        >
+          <Text style={styles.syncBadgeText}>
+            ⚠ {failedCount} workout{failedCount > 1 ? 's' : ''} could not sync. Tap to retry.
+          </Text>
+        </TouchableOpacity>
       )}
 
       {/* G1 — Live session banner */}

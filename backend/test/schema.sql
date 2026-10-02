@@ -9,7 +9,8 @@
 -- (add_trainer_clients.sql, add_body_metrics.sql) so the link semantics under test are the
 -- real ones.
 
-DROP TABLE IF EXISTS body_metrics, lifestyle_data, intake, trainer_clients, users CASCADE;
+DROP TABLE IF EXISTS workout_exercises, workouts, exercises, body_metrics, lifestyle_data, intake,
+  trainer_clients, users CASCADE;
 
 CREATE TABLE users (
   user_id         SERIAL PRIMARY KEY,
@@ -71,4 +72,29 @@ CREATE TABLE body_metrics (
   notes           TEXT,
   logged_at       DATE NOT NULL DEFAULT CURRENT_DATE,
   created_at      TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- G48 — what POST /api/workouts (workoutsController.createWorkout) writes and reads.
+CREATE TABLE exercises (
+  exercise_id     SERIAL PRIMARY KEY,
+  name            TEXT NOT NULL
+);
+
+CREATE TABLE workouts (
+  workout_id      SERIAL PRIMARY KEY,
+  user_id         INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  name            TEXT,
+  date            TIMESTAMP,
+  notes           TEXT,
+  client_id       UUID UNIQUE
+);
+
+CREATE TABLE workout_exercises (
+  id              SERIAL PRIMARY KEY,
+  workout_id      INTEGER NOT NULL REFERENCES workouts(workout_id) ON DELETE CASCADE,
+  exercise_id     INTEGER NOT NULL REFERENCES exercises(exercise_id),
+  sets            INTEGER,
+  reps            NUMERIC,
+  weight          NUMERIC,
+  rir             NUMERIC
 );

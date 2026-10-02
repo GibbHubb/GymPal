@@ -6,7 +6,7 @@ import { Theme } from '../../constants/Theme';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import VolumeHeatmap from '../../components/VolumeHeatmap';
-import { getPendingCount } from '../../utils/syncQueue';
+import { getPendingCount, getFailedCount } from '../../utils/syncQueue';
 import { fetchTodayProgram, fetchTemplates, deleteTemplate } from '../../api';
 import { useDeloadSignal } from '../../hooks/useDeloadSignal';  // G29
 
@@ -20,7 +20,8 @@ const ClientHome = ({ navigation }) => {
 
   useEffect(() => {
     const refresh = async () => {
-      const count = await getPendingCount();
+      // G48 — failed items are unsynced too; they used to be counted by nobody
+      const count = (await getPendingCount()) + (await getFailedCount());
       setPendingSyncCount(count);
       try {
         const t = await fetchTodayProgram();

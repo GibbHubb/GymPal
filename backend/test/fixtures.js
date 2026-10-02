@@ -87,6 +87,8 @@ async function resetAndSeed(url = TEST_DB_URL) {
         [u.user_id]);
     }
 
+    await client.query(`INSERT INTO exercises (exercise_id, name) VALUES (1, 'Back squat')`);
+
     // Prove the seed produced the intended topology rather than trusting the INSERTs.
     const { rows } = await client.query(
       'SELECT trainer_id, client_id, status FROM trainer_clients ORDER BY client_id');

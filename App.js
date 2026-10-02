@@ -5,12 +5,12 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AppNavigator from './screens/Navigation';
 import ErrorBoundary from './ErrorBoundary';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import { View, ActivityIndicator, Platform, AppState } from 'react-native';
 import { navigationRef } from './utils/RootNavigation';
 import { Theme } from './constants/Theme';
-import { runSync } from './utils/syncEngine';
+import { syncQueued } from './utils/sessionSync';  // G48
 import { SERVER_URL } from './config/api';  // G54
-import { authApi, SessionExpiredError } from './api';  // G47
+import { authApi, SessionExpiredError, refreshSession } from './api';  // G47
 import { getTokens, clearSession } from './utils/session';  // G47
 import { checkSession } from './utils/authCheck';  // G47 review
 
@@ -86,6 +86,10 @@ export default function App() {
       // G2 — register Expo push token
       const current = await getTokens();
       if (current.token) registerPushToken();
+
+      // G48 — cold start and login: an EXPLICIT sync (also retries items that exhausted
+      // their automatic attempts), with a refreshed token if the stored one has expired.
+      syncQueued(SERVER_URL, refreshSession, { explicit: true }).catch(() => {});
     } catch (error) {
       console.warn("❌ Token check failed:", error.message);
       await clearSession();  // session keys only; the offline queue survives
@@ -99,23 +103,18 @@ export default function App() {
   useEffect(() => {
     refreshAuth();
 
-    // G3 — start offline sync engine
-    // NetInfo events are synchronous callbacks, but AsyncStorage is async.
-    // We bridge this by triggering an async runSync directly from the listener
-    // rather than relying on getAuthToken() returning a value synchronously.
-    const API_BASE = SERVER_URL;
+    // G3 — start offline sync engine. G48: every trigger goes through syncQueued, which
+    // refreshes an expired token instead of sending the stale stored one. (The mount-time
+    // sync that sent the raw stored token is gone: refreshAuth's explicit sync replaces it.)
     const { default: NetInfo } = require('@react-native-community/netinfo');
-    const syncOnConnect = async (state) => {
-      if (state.isConnected) {
-        const token = await AsyncStorage.getItem('token');
-        if (token) runSync(API_BASE, token).catch(() => {});
-      }
-    };
-    const netInfoUnsub = NetInfo.addEventListener(syncOnConnect);
+    const netInfoUnsub = NetInfo.addEventListener((state) => {
+      if (state.isConnected) syncQueued(SERVER_URL, refreshSession).catch(() => {});
+    });
 
-    // Also attempt an immediate sync on mount
-    AsyncStorage.getItem('token').then(token => {
-      if (token) runSync(API_BASE, token).catch(() => {});
+    // G48 — back to the foreground: an explicit sync, so a sync does not depend on a
+    // connectivity edge (the common case is an app reopened while already online).
+    const appStateSub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') syncQueued(SERVER_URL, refreshSession, { explicit: true }).catch(() => {});
     });
 
     // G2 — handle notification tap → navigate to the screen embedded in data
@@ -128,6 +127,7 @@ export default function App() {
     return () => {
       sub.remove();
       netInfoUnsub();
+      appStateSub.remove();
     };
   }, []);
 
