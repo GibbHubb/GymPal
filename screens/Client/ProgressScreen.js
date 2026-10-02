@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Alert, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+// G52 — virtualized, uncapped, memoised exercise picker
+import ExerciseRow from '../../components/ExerciseRow';
+import { filterExercises } from '../../utils/exerciseFilter';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { View, Text, Alert, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, FlatList, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -189,9 +193,27 @@ const ProgressScreen = () => {
     }
   };
 
-  const filteredExercises = exercises.filter((e) =>
-    (e.name || '').toLowerCase().includes(exerciseSearch.toLowerCase())
+  // G52 — an empty search lists every exercise (as before); typing filters once it pauses.
+  const debouncedExerciseSearch = useDebouncedValue(exerciseSearch, 150);
+  const filteredExercises = useMemo(
+    () => (debouncedExerciseSearch.trim()
+      ? filterExercises(exercises, debouncedExerciseSearch)
+      : exercises),
+    [exercises, debouncedExerciseSearch],
   );
+  const selectedExerciseId = selectedExercise ? selectedExercise.exercise_id : null;
+  const renderExerciseRow = useCallback(({ item }) => (
+    <ExerciseRow
+      item={item}
+      label={item.name}
+      onSelect={setSelectedExercise}
+      active={selectedExerciseId === item.exercise_id}
+      style={styles.exerciseItem}
+      activeStyle={styles.exerciseItemActive}
+      textStyle={styles.exerciseItemText}
+      activeTextStyle={styles.exerciseItemTextActive}
+    />
+  ), [selectedExerciseId]);
 
   const renderCategoryTab = () => (
     <>
@@ -265,28 +287,21 @@ const ProgressScreen = () => {
           value={exerciseSearch}
           onChangeText={setExerciseSearch}
         />
-        <ScrollView style={styles.exerciseList} nestedScrollEnabled>
-          {filteredExercises.slice(0, 20).map((ex) => (
-            <TouchableOpacity
-              key={ex.exercise_id}
-              style={[
-                styles.exerciseItem,
-                selectedExercise?.exercise_id === ex.exercise_id && styles.exerciseItemActive,
-              ]}
-              onPress={() => setSelectedExercise(ex)}
-            >
-              <Text style={[
-                styles.exerciseItemText,
-                selectedExercise?.exercise_id === ex.exercise_id && styles.exerciseItemTextActive,
-              ]}>
-                {ex.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-          {filteredExercises.length === 0 && (
-            <Text style={styles.noDataText}>No exercises found.</Text>
-          )}
-        </ScrollView>
+        {/* G52 — was a ScrollView rendering `.slice(0, 20)` of the matches: the 21st match
+            of any search was unreachable. Every match is listed now; the FlatList only
+            mounts what fits in its 180pt window. */}
+        <FlatList
+          style={styles.exerciseList}
+          nestedScrollEnabled
+          data={filteredExercises}
+          keyExtractor={(ex) => String(ex.exercise_id)}
+          renderItem={renderExerciseRow}
+          extraData={selectedExerciseId}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          ListEmptyComponent={<Text style={styles.noDataText}>No exercises found.</Text>}
+        />
       </GlassCard>
 
       {exerciseLoading ? (

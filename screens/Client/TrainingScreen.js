@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  ScrollView,
   Vibration,
   Modal,
 } from 'react-native';
@@ -30,13 +29,18 @@ import { mergePersonalBests } from '../../utils/prMath';
 // G36 — derive a workout name (backend rejects a null name with 400)
 import { deriveWorkoutName } from '../../utils/workoutNaming';
 import { SERVER_URL } from '../../config/api';  // G54
+// G52 — virtualized, memoised, debounced exercise search
+import ExerciseRow from '../../components/ExerciseRow';
+import { filterExercises, exerciseName, exerciseKey } from '../../utils/exerciseFilter';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 
 
 const TrainingScreen = ({ navigation, route }) => {
   const [exercisePool, setExercisePool] = useState([]);
-  const [filteredExercises, setFilteredExercises] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  // G52 — results show while typing and close on a pick (the query then holds the pick's name)
+  const [resultsOpen, setResultsOpen] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState(null);
   const [sets, setSets] = useState('');
@@ -159,25 +163,20 @@ const TrainingScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleSearch = (text) => {
-    console.log("Search Query:", text);
+  // G52 — the input updates on every keystroke; the filter (and so the list) only once
+  // typing pauses. It used to filter, log the whole result array and re-render every row on
+  // each keystroke.
+  const handleSearch = useCallback((text) => {
     setSearchQuery(text);
+    setResultsOpen(text.length > 0);
+  }, []);
+  const debouncedQuery = useDebouncedValue(searchQuery, 150);
+  const filteredExercises = useMemo(
+    () => (resultsOpen ? filterExercises(exercisePool, debouncedQuery) : []),
+    [resultsOpen, exercisePool, debouncedQuery],
+  );
 
-    if (text.length > 0) {
-      const filtered = exercisePool.filter((exercise) =>
-        typeof exercise === "string"
-          ? exercise.toLowerCase().includes(text.toLowerCase())
-          : exercise.name.toLowerCase().includes(text.toLowerCase())
-      );
-      console.log("Filtered Results:", filtered); // 🔍 Debugging Log
-      setFilteredExercises(filtered);
-    } else {
-      setFilteredExercises([]); // Hide list if nothing is typed
-    }
-  };
-
-  const handleSelectExercise = (exercise) => {
-    console.log("Exercise Selected:", exercise);
+  const handleSelectExercise = useCallback((exercise) => {
     setSelectedExercise(exercise.name || exercise); // If it's an object, use `name`
     // G9 — capture exercise_id so the backend can run PB detection
     setSelectedExerciseId(exercise.exercise_id || null);
@@ -190,8 +189,19 @@ const TrainingScreen = ({ navigation, route }) => {
         : 90
     );
     setSearchQuery(exercise.name || exercise);
-    setFilteredExercises([]); // Clear search results
-  };
+    setResultsOpen(false); // Clear search results
+  }, []);
+
+  // G52 — stable renderItem, so a parent re-render does not hand every row a new function.
+  const renderSearchRow = useCallback(({ item }) => (
+    <ExerciseRow
+      item={item}
+      label={exerciseName(item)}
+      onSelect={handleSelectExercise}
+      style={styles.searchItem}
+      textStyle={styles.searchText}
+    />
+  ), [handleSelectExercise]);
 
   // G14 — rest-timer state. Foreground-only countdown; vibrates briefly
   // at zero. Default duration sourced from the picked exercise (G13);
@@ -373,8 +383,12 @@ const finishWorkout = async () => {
       setIsSubmitting(false);
   }
 };
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
+  // G52 — the screen is ONE FlatList: the form above the search results is its header, the
+  // rest is its footer, and the search results are its rows. The results FlatList used to be
+  // nested inside a ScrollView, which disables virtualization (every row rendered at once) and
+  // is the "VirtualizedLists should never be nested" warning.
+  const listHeader = (
+    <>
       {/* G14 — Rest timer overlay (foreground-only, fires after Add Exercise) */}
       {restTimer.isActive && (
         <RestTimer
@@ -481,20 +495,11 @@ const finishWorkout = async () => {
         value={searchQuery}
         onChangeText={handleSearch}
       />
+    </>
+  );
 
-      {/* Display search results only if text is typed */}
-      {searchQuery.length > 0 && filteredExercises.length > 0 && (
-        <FlatList
-          data={filteredExercises}
-          keyExtractor={(item) => (typeof item === "string" ? item : item.name)}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.searchItem} onPress={() => handleSelectExercise(item)}>
-              <Text style={styles.searchText}>{item.name || item}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
-
+  const listFooter = (
+    <>
       {/* Input Fields */}
       <TextInput 
         style={styles.input} 
@@ -589,7 +594,21 @@ const finishWorkout = async () => {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </>
+  );
+
+  return (
+    <FlatList
+      contentContainerStyle={styles.container}
+      data={searchQuery.length > 0 ? filteredExercises : []}
+      keyExtractor={exerciseKey}
+      renderItem={renderSearchRow}
+      ListHeaderComponent={listHeader}
+      ListFooterComponent={listFooter}
+      initialNumToRender={12}
+      maxToRenderPerBatch={12}
+      windowSize={7}
+    />
   );
 };
 
@@ -620,7 +639,7 @@ const styles = StyleSheet.create({
   modalCancelText: { color: '#1A1A1A', fontSize: 16, fontWeight: 'bold' },
   modalSave: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8, backgroundColor: '#f7bf0b', alignItems: 'center' },
   buttonText: { color: '#1A1A1A', fontSize: 18, fontWeight: 'bold' },
-  searchItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: '#ddd' },
+  searchItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: '#ddd', alignSelf: 'stretch' },
   searchText: { fontSize: 16 },
   summaryText: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A', marginTop: 5 },
   // G9 — PB banner styles
