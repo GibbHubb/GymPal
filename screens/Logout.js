@@ -1,15 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CommonActions } from '@react-navigation/native';
+import { clearSession } from '../utils/session';  // G47
 
-export default function LogoutScreen({ navigation }) {
+export default function LogoutScreen({ navigation, refreshAuth }) {
     const handleLogout = async () => {
         console.log("🚪 Logging out...");
-        await AsyncStorage.removeItem('token');
-        await AsyncStorage.removeItem('role');
+        await clearSession();  // G47 — session keys only; the offline queue survives
       
         console.log("🔄 Refreshing auth state...");
-        await refreshAuth();  // ✅ Ensure auth state updates immediately
+        if (refreshAuth) await refreshAuth();  // ✅ Ensure auth state updates immediately
       
         console.log("🔀 Resetting navigation...");
         navigation.dispatch(

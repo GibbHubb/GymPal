@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, Alert, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearSession } from '../../utils/session';  // G47
 import { Theme } from '../../constants/Theme';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -68,7 +69,7 @@ const ClientHome = ({ navigation }) => {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.clear();
+      await clearSession();  // G47 — was AsyncStorage.clear(), which deleted the offline workout queue
       Alert.alert('Logged Out', 'You have been logged out.');
       navigation.replace('Login');
     } catch (error) {

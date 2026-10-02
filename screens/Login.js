@@ -6,7 +6,7 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveLogin } from '../utils/session';  // G47
 import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { loginUser } from '../api';
@@ -28,14 +28,15 @@ export default function LoginScreen({ navigation, refreshAuth }) {
       const response = await loginUser({ username, password });
   
       if (response.token) {
-        await AsyncStorage.setItem('token', response.token);
-        await AsyncStorage.setItem('role', response.role);
+        // G47 — persists the refresh token too, and reads role/user_id from `response.user`,
+        // where the backend puts them (they were read from the top level, i.e. undefined).
+        const role = await saveLogin(response);
   
         await refreshAuth();
   
         navigation.reset({
           index: 0,
-          routes: [{ name: response.role === 'client' || response.role === 'user' ? 'ClientHome' : 'TrainerHome' }]
+          routes: [{ name: role === 'client' || role === 'user' ? 'ClientHome' : 'TrainerHome' }]
         });
       } else {
         Alert.alert("Login error", "No token received.");

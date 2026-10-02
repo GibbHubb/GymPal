@@ -191,7 +191,9 @@ const authenticateToken = (req, res, next) => {
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
       console.error('Token verification failed:', err.message);
-      return res.status(403).json({ message: 'Invalid or expired token.' });
+      // G47 — 401, not 403: an expired access token is an authentication failure, and 401 is
+      // what tells the app to use its refresh token. 403 stays for "authenticated, not allowed".
+      return res.status(401).json({ message: 'Invalid or expired token.' });
     }
     req.user = user; // Attach decoded token payload to req.user
     next();

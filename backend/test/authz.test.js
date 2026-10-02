@@ -46,7 +46,7 @@ describe.skipIf(!HAVE_DB)('G44 authorization matrix (real app, real Postgres)', 
     request = require('supertest');
     jwt = require('jsonwebtoken');
     ({ app } = require('../app'));
-  });
+  }, 60000); // schema reset + loading the whole app; 10s is not enough on a cold disk
 
   const { clientA, clientB, trainerA, trainerB } = USERS;
 

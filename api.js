@@ -5,50 +5,46 @@ import { CommonActions } from '@react-navigation/native';
 
 import { navigationRef } from './utils/RootNavigation';
 import { API_URL } from './config/api';  // G54
-// ✅ Get token from storage for Authorization
-const getAuthHeaders = async () => {
-  const token = await AsyncStorage.getItem('token');
-  if (!token) console.warn('⚠️ No authentication token found in AsyncStorage.');
-  return { Authorization: `Bearer ${token || ''}` };
+import { getTokens, setTokens, clearSession } from './utils/session';  // G47
+import { installAuthRefresh, SessionExpiredError } from './utils/authRefresh';  // G47
+
+// G47 — ONE shared instance for every authenticated call. It used to be a fresh instance per
+// call whose 401 handler ran `AsyncStorage.clear()` (deleting the offline workout queue) and
+// logged the user out without ever trying the refresh token. See utils/authRefresh.js.
+export const authApi = axios.create({
+  baseURL: API_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// The refresh call uses bare axios: no interceptors, so a rejected refresh cannot recurse.
+const requestRefresh = async (refreshToken) => {
+  const { data } = await axios.post(`${API_URL}/users/refresh`, { refreshToken });
+  return data;
 };
 
-// ✅ Create an Axios instance with automatic 401 logout handling
-const createAuthApiInstance = async () => {
-  const headers = await getAuthHeaders();
-
-  const instance = axios.create({
-    baseURL: API_URL,
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-  });
-
-  // 🔁 Intercept 401 responses to logout automatically
-  instance.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-      if (error.response && error.response.status === 401) {
-        await AsyncStorage.clear();
-
-        if (navigationRef) {
-          navigationRef.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            })
-          );
-        }
-
-        return Promise.reject(new Error('Session expired'));
-      }
-
-      return Promise.reject(error);
-    }
-  );
-
-  return instance;
+const goToLogin = async () => {
+  await clearSession();
+  if (navigationRef && navigationRef.isReady && navigationRef.isReady()) {
+    navigationRef.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      })
+    );
+  }
 };
+
+export const { refresh: refreshSession } = installAuthRefresh(authApi, {
+  getTokens,
+  setTokens,
+  requestRefresh,
+  onSessionExpired: goToLogin,
+});
+
+export { SessionExpiredError };
+
+// Kept so the ~50 call sites below stay untouched: it now hands back the shared instance.
+const createAuthApiInstance = async () => authApi;
 
 // ?? Fetch one group workout
 export const fetchGroupWorkoutDetails = async (workoutId) => {
@@ -199,11 +195,7 @@ export const loginUser = async ({ username, password }) => {
 
     const response = await axios.post(`${API_URL}/users/login`, { username, password });
 
-    if (response.data.user_id && response.data.token) {
-      await AsyncStorage.setItem('user_id', response.data.user_id.toString());
-      await AsyncStorage.setItem('token', response.data.token);  // ✅ Store auth token
-    } else {
-    }
+    // G47 — the session (both tokens, role, user_id) is persisted by saveLogin in Login.js.
 
     return response.data;
   } catch (error) {
@@ -478,11 +470,7 @@ export const fetchUsers = async (page = 1, searchQuery = '') => {
 // ✅ Fetch a user by ID
 export const fetchUserById = async (userId) => {
   try {
-    const token = await AsyncStorage.getItem('token');
-
-    const response = await axios.get(`${API_URL}/users/${userId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await authApi.get(`/users/${userId}`);  // G47 — refresh-aware
 
     return response.data;
   } catch (error) {
@@ -494,11 +482,7 @@ export const fetchUserById = async (userId) => {
 // ✅ Update a user
 export const updateUser = async (userId, updatedData) => {
   try {
-    const token = await AsyncStorage.getItem('token');
-
-    const response = await axios.put(`${API_URL}/users/${userId}`, updatedData, {
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
+    const response = await authApi.put(`/users/${userId}`, updatedData);  // G47 — refresh-aware
 
     return response.data;
   } catch (error) {

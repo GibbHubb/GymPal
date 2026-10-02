@@ -15,6 +15,10 @@
 const fs = require('fs');
 const path = require('path');
 const { Client } = require('pg');
+const bcrypt = require('bcrypt');
+
+// Every fixture user's password, so a test can log in through the real /users/login.
+const FIXTURE_PASSWORD = 'fixture-password';
 
 const TEST_DB_URL = process.env.TEST_DATABASE_URL || '';
 
@@ -48,10 +52,11 @@ async function resetAndSeed(url = TEST_DB_URL) {
   await client.connect();
   try {
     await client.query(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
+    const hash = await bcrypt.hash(FIXTURE_PASSWORD, 4);
     for (const u of Object.values(USERS)) {
       await client.query(
         'INSERT INTO users (user_id, username, password, role) VALUES ($1, $2, $3, $4)',
-        [u.user_id, u.username, 'not-a-real-hash', u.role]);
+        [u.user_id, u.username, hash, u.role]);
     }
     await client.query(`SELECT setval('users_user_id_seq', 100)`);
     await client.query(
@@ -84,4 +89,4 @@ async function resetAndSeed(url = TEST_DB_URL) {
   }
 }
 
-module.exports = { TEST_DB_URL, USERS, resetAndSeed, assertDisposable };
+module.exports = { TEST_DB_URL, USERS, FIXTURE_PASSWORD, resetAndSeed, assertDisposable };

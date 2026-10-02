@@ -11,6 +11,8 @@ import { navigationRef } from './utils/RootNavigation';
 import { Theme } from './constants/Theme';
 import { runSync } from './utils/syncEngine';
 import { API_URL, SERVER_URL } from './config/api';  // G54
+import { authApi, SessionExpiredError } from './api';  // G47
+import { getTokens, clearSession } from './utils/session';  // G47
 
 // Show notifications in foreground
 Notifications.setNotificationHandler({
@@ -62,32 +64,40 @@ export default function App() {
   const [initialRoute, setInitialRoute] = useState('Login');
   const [loading, setLoading] = useState(true);
 
+  // G47 — cold start / post-login auth check.
+  // It used to GET /users/validate-token, a route that does not exist: since G55 guarded
+  // /users/:user_id that path 400s, so every check failed and ran AsyncStorage.clear(),
+  // logging the user out and deleting the offline workout queue. Now: ask /users/me through
+  // the refresh-aware client (an expired access token is refreshed transparently), log out
+  // only when the SESSION is rejected, and stay signed in when the server is merely
+  // unreachable, so an offline cold start keeps the user's session and queue.
   const refreshAuth = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const { token, refreshToken } = await getTokens();
       const role = await AsyncStorage.getItem('role');
 
-      if (!token) throw new Error("No token");
+      if (!token && !refreshToken) throw new SessionExpiredError('No session');
 
-      const response = await axios.get(`${API_URL}/users/validate-token`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.status === 200) {
-        setIsAuthenticated(true);
-        setUserRole(role);
-
-        const lastRoute = await AsyncStorage.getItem('lastRoute');
-        if (lastRoute) setInitialRoute(lastRoute);
-
-        // G2 — register Expo push token
-        registerPushToken(token);
-      } else {
-        throw new Error("Token invalid");
+      try {
+        await authApi.get('/users/me');
+      } catch (err) {
+        const status = err?.response?.status;
+        if (err instanceof SessionExpiredError || (status >= 400 && status < 500)) throw err;
+        console.warn('⚠️ Auth check could not reach the server; keeping the stored session.');
       }
+
+      setIsAuthenticated(true);
+      setUserRole(role);
+
+      const lastRoute = await AsyncStorage.getItem('lastRoute');
+      if (lastRoute) setInitialRoute(lastRoute);
+
+      // G2 — register Expo push token
+      const current = await getTokens();
+      if (current.token) registerPushToken(current.token);
     } catch (error) {
       console.warn("❌ Token check failed:", error.message);
-      await AsyncStorage.clear();
+      await clearSession();  // session keys only; the offline queue survives
       setIsAuthenticated(false);
       setUserRole('');
     } finally {

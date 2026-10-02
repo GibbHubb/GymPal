@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearSession } from '../../utils/session';  // G47
 import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Theme } from '../../constants/Theme';
@@ -10,7 +10,7 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 export default function TrainerHome({ navigation }) {
   const handleLogout = async () => {
     try {
-      await AsyncStorage.clear();
+      await clearSession();  // G47 — was AsyncStorage.clear(), which deleted the offline workout queue
       navigation.replace('Login');
     } catch (error) {
       Alert.alert('Error', 'Failed to log out.');
