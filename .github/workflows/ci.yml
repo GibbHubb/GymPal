@@ -1,0 +1,68 @@
+# G50 — run both test suites on every push and pull request.
+#
+# The repo is public, so GitHub Actions minutes are free and unlimited; every branch runs.
+# Each job writes a vitest JSON report and assert-test-count.mjs fails the job if no tests
+# ran, any failed, or any were skipped (a suite skipped for want of a database is not a pass).
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App suite (root)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: Test
+        run: npx vitest run --reporter=default --reporter=json --outputFile.json=vitest-app.json
+      - name: Assert tests actually ran
+        if: always()
+        run: node .github/scripts/assert-test-count.mjs vitest-app.json "app" --min-files 4 --min-tests 40
+
+  backend:
+    name: Backend suite (with Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gympal
+          POSTGRES_PASSWORD: gympal
+          POSTGRES_DB: gympal_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U gympal -d gympal_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://gympal:gympal@localhost:5432/gympal_test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Test
+        run: npx vitest run --reporter=default --reporter=json --outputFile.json=vitest-backend.json
+      - name: Assert tests actually ran
+        if: always()
+        run: node ../.github/scripts/assert-test-count.mjs vitest-backend.json "backend" --min-files 9 --min-tests 100

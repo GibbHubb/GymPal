@@ -137,6 +137,27 @@ Update `api.js` → `API_URL` to point at `http://localhost:5000/api` for local 
 | `JWT_EXPIRES_IN` | Token lifetime (default: 7d) |
 | `NODE_ENV` | `development` or `production` |
 
+### Tests
+
+Two suites, both vitest, both run by CI (`.github/workflows/ci.yml`) on every push and PR:
+
+```bash
+npm test                 # the app suite (utils/, config/)
+npm --prefix backend test   # the backend suite
+```
+
+The backend's request-level authorization tests (`backend/test/`) drive the real app against a
+real, disposable Postgres. Without `TEST_DATABASE_URL` they are skipped locally (CI refuses to
+skip them):
+
+```bash
+docker run -d --name gympal-test-pg -e POSTGRES_USER=gympal -e POSTGRES_PASSWORD=gympal \
+  -e POSTGRES_DB=gympal_test -p 55432:5432 postgres:16-alpine
+TEST_DATABASE_URL=postgres://gympal:gympal@127.0.0.1:55432/gympal_test npm --prefix backend test
+```
+
+The database name must contain `test`: the fixtures drop and recreate their tables.
+
 ---
 
 ## Design System

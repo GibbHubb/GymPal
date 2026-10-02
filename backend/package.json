@@ -4,7 +4,7 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
@@ -25,5 +25,9 @@
     "pg": "^8.13.1",
     "socket.io": "^4.7.5",
     "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.0",
+    "vitest": "^2.1.9"
   }
 }

@@ -144,15 +144,19 @@ const io = new Server(server, {
 });
 socketHandlers(io);
 
-// ✅ Start Server
-server.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    // G46 — was `Connected to database: ${config.databaseUrl}`, a second copy of the
-    // connection string (with credentials) in the logs.
-    console.log(`✅ Connected to database`);
-});
+// G50 — listen (and start the cron) only when run as the entry point (`npm start` =
+// `node app.js`). Imported by a test, the module hands back the app without binding a port
+// or scheduling a weekly email, so supertest can drive the real app.
+if (require.main === module) {
+    server.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+        // G46 — was `Connected to database: ${config.databaseUrl}`, a second copy of the
+        // connection string (with credentials) in the logs.
+        console.log(`✅ Connected to database`);
+    });
 
-// G8 — weekly summary cron
-require('./jobs/weekly_summary');
+    // G8 — weekly summary cron
+    require('./jobs/weekly_summary');
+}
 
 module.exports = { app, server, io };
