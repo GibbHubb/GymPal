@@ -187,8 +187,9 @@ Each workout is persisted to `AsyncStorage` under the key `hai_sync_queue` as a 
 | `id` | Client-generated UUID v4 (used for idempotency) |
 | `type` | Always `workout_log` |
 | `payload` | Full workout body sent to the backend, including `client_id` |
-| `status` | `pending` → `retrying` → `synced` / `failed` |
+| `status` | `pending` → `retrying` → `failed` (a synced item is removed). `failed` items are skipped by automatic syncs and retried by an explicit one (G48) |
 | `attempts` | Number of sync attempts so far |
+| `ownerId` | User id of the account that queued it. A sync only sends the items of the user whose token it uses; the queue survives logout, so another user's items wait for their owner (G58) |
 | `createdAt` | ISO timestamp of local creation |
 
 ### Sync Engine (`utils/syncEngine.js`)

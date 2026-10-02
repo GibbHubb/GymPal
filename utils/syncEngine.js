@@ -1,5 +1,6 @@
 import NetInfo from '@react-native-community/netinfo';
-import { getQueue, updateItem, removeItem, STATUS, AUTO_SYNC_STATUSES } from './syncQueue';
+import { getQueue, updateItem, removeItem, isOwnedBy, STATUS, AUTO_SYNC_STATUSES } from './syncQueue';
+import { tokenUserId } from './jwt';
 
 export const MAX_ATTEMPTS = 5;
 
@@ -47,7 +48,9 @@ export function runSyncNow(apiBaseUrl, authToken) {
 async function doSync(apiBaseUrl, authToken, includeFailed) {
     const queue = await getQueue();
     const wanted = includeFailed ? [...AUTO_SYNC_STATUSES, STATUS.FAILED] : AUTO_SYNC_STATUSES;
-    const toSend = queue.filter(q => wanted.includes(q.status));
+    // G58 — the server files a workout under the token's user, so send only that user's items.
+    const me = tokenUserId(authToken);
+    const toSend = queue.filter(q => wanted.includes(q.status) && isOwnedBy(q, me));
     // G9 — aggregate PB detections across all synced items
     const personalBests = [];
     let synced = 0;

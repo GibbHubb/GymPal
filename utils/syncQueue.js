@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenUserId } from './jwt';
 
 const QUEUE_KEY = 'hai_sync_queue';
 
@@ -21,9 +22,36 @@ export const STATUS = Object.freeze({
 /** The statuses an AUTOMATIC sync attempts (and getPendingCount counts). */
 export const AUTO_SYNC_STATUSES = Object.freeze([STATUS.PENDING, STATUS.RETRYING]);
 
+// G58 — every item records whose workout it is. The queue deliberately survives logout
+// (G47), so without an owner, user B logging in on A's phone would sync A's workouts into
+// B's account. A sync only sends the items of the user whose token it sends them with;
+// everyone else's wait, untouched, until their owner logs back in. Items queued before
+// G58 carry no owner and are sent by whoever syncs next, as before.
+
+/** Whose session is active: the user in the stored access token, else the stored user_id. */
+export async function currentOwnerId() {
+    const fromToken = tokenUserId(await AsyncStorage.getItem('token'));
+    if (fromToken) return fromToken;
+    const stored = await AsyncStorage.getItem('user_id');
+    return stored ? String(stored) : null;
+}
+
+/** May `ownerId`'s sync send this item? */
+export function isOwnedBy(item, ownerId) {
+    if (item.ownerId === undefined || item.ownerId === null) return true; // pre-G58 item
+    return ownerId !== null && ownerId !== undefined && String(item.ownerId) === String(ownerId);
+}
+
 export async function enqueue(item) {
     const queue = await getQueue();
-    queue.push({ ...item, attempts: 0, createdAt: new Date().toISOString(), status: STATUS.PENDING });
+    const ownerId = item.ownerId ?? await currentOwnerId();
+    queue.push({
+        ...item,
+        ownerId: ownerId === undefined || ownerId === null ? null : String(ownerId),
+        attempts: 0,
+        createdAt: new Date().toISOString(),
+        status: STATUS.PENDING,
+    });
     await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
 }
 
@@ -46,14 +74,16 @@ export async function removeItem(id) {
     await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(filtered));
 }
 
-/** Items an automatic sync will attempt: exactly runSync's default selection. */
-export async function getPendingCount() {
+/** Items an automatic sync will attempt for this user: exactly runSync's default selection. */
+export async function getPendingCount(ownerId) {
+    const me = ownerId === undefined ? await currentOwnerId() : ownerId;
     const queue = await getQueue();
-    return queue.filter(q => AUTO_SYNC_STATUSES.includes(q.status)).length;
+    return queue.filter(q => AUTO_SYNC_STATUSES.includes(q.status) && isOwnedBy(q, me)).length;
 }
 
-/** Items that exhausted their automatic retries and wait for an explicit sync. */
-export async function getFailedCount() {
+/** This user's items that exhausted their automatic retries and wait for an explicit sync. */
+export async function getFailedCount(ownerId) {
+    const me = ownerId === undefined ? await currentOwnerId() : ownerId;
     const queue = await getQueue();
-    return queue.filter(q => q.status === STATUS.FAILED).length;
+    return queue.filter(q => q.status === STATUS.FAILED && isOwnedBy(q, me)).length;
 }
