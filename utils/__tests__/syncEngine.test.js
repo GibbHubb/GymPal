@@ -181,3 +181,53 @@ describe('one run at a time', () => {
     expect(await Q.getQueue()).toEqual([]);
   });
 });
+
+describe('review 2026-10-02: calls during a run, and concurrent queue writes', () => {
+  it('a workout queued DURING a run is sent by the call that follows it', async () => {
+    await add('a');
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    server = () => gate.then(() => res(201));
+    const first = E.runSync(API, 't'); // snapshot: [a]
+    await new Promise((r) => setTimeout(r, 5));
+    await add('b'); // finished a workout while the run is going
+    const second = E.runSync(API, 't'); // must not just share the first run's result
+    release();
+    const r2 = await second;
+    await first;
+    expect(posts.map((p) => p.client_id)).toEqual(['a', 'b']);
+    expect(r2.synced).toBe(1);
+    expect(await Q.getQueue()).toEqual([]);
+  });
+
+  it('every caller in one window shares ONE follow-up run', async () => {
+    await add('a');
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    server = () => gate.then(() => res(201));
+    const first = E.runSync(API, 't');
+    const followers = [E.runSync(API, 't'), E.runSync(API, 't'), E.runSyncNow(API, 't')];
+    release();
+    const results = await Promise.all(followers);
+    await first;
+    expect(new Set(results).size).toBe(1); // the same result object: one run, not three
+  });
+
+  it('interleaved enqueue and remove both survive (no lost write)', async () => {
+    await add('a');
+    await Promise.all([Q.removeItem('a'), add('b'), add('c'), Q.updateItem('b', { attempts: 2 })]);
+    const items = await Q.getQueue();
+    expect(items.map((i) => i.id)).toEqual(['b', 'c']);
+    expect(items[0].attempts).toBe(2);
+  });
+
+  it('subscribers hear about every finished run', async () => {
+    let heard = 0;
+    const off = E.subscribeSyncRuns(() => { heard += 1; });
+    await E.runSync(API, 't');
+    await E.runSync(API, 't');
+    off();
+    await E.runSync(API, 't');
+    expect(heard).toBe(2);
+  });
+});

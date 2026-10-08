@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto';
 import AsyncStorage, { store } from '../../utils/__tests__/asyncStorageMock.js';
 import * as Q from '../../utils/syncQueue.js';
 import * as E from '../../utils/syncEngine.js';
+import { syncQueued } from '../../utils/sessionSync.js';
 
 const require = createRequire(import.meta.url);
 const { TEST_DB_URL, USERS, resetAndSeed } = require('./fixtures');
@@ -95,6 +96,36 @@ describe.skipIf(!HAVE_DB)('G48 sync engine against the real backend', () => {
     const r = await E.runSyncNow(base, token); // explicit (cold start / login / "Sync now")
     expect(r.synced).toBe(1);
     expect(gateLog.at(-1)).toBe('201');
+    expect(await Q.getQueue()).toEqual([]);
+    expect(await rowsFor(id)).toEqual([{ user_id: USERS.clientA.user_id, sets: 1 }]);
+  });
+
+  it('through syncQueued with an EXPIRED access token: refreshed via the real /users/refresh, then synced', async () => {
+    const jwt = require('jsonwebtoken');
+    const expired = jwt.sign(
+      { user_id: USERS.clientA.user_id, role: 'client', exp: Math.floor(Date.now() / 1000) - 60 },
+      process.env.JWT_SECRET);
+    const refreshToken = jwt.sign({ user_id: USERS.clientA.user_id, role: 'client' },
+      process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
+    await AsyncStorage.setItem('token', expired);
+    await AsyncStorage.setItem('refreshToken', refreshToken);
+    const id = randomUUID();
+    await Q.enqueue({ id, type: 'workout_log', payload: payload(id) });
+    let refreshed = 0;
+    const refresh = async () => {
+      refreshed += 1;
+      const res = await fetch(`${base}/api/users/refresh`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      const body = await res.json();
+      await AsyncStorage.setItem('token', body.token);
+      return body.token;
+    };
+    const r = await syncQueued(base, refresh, { explicit: true });
+    expect(refreshed).toBe(1);
+    expect(r.synced).toBe(1);
+    expect(gateLog).toEqual(['401', '200', '201']); // workouts 401, refresh 200, workouts 201
     expect(await Q.getQueue()).toEqual([]);
     expect(await rowsFor(id)).toEqual([{ user_id: USERS.clientA.user_id, sets: 1 }]);
   });

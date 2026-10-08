@@ -18,6 +18,7 @@ import 'react-native-get-random-values'; // required for uuid in React Native
 import { fetchExercises, createTemplate, refreshSession } from '../../api';
 import { enqueue, getPendingCount, getFailedCount } from '../../utils/syncQueue';
 import { syncQueued } from '../../utils/sessionSync';  // G48
+import { subscribeSyncRuns } from '../../utils/syncEngine';  // G48 review
 import { tokenUserId } from '../../utils/jwt';  // G58
 // G14 — between-batch rest timer
 import { useRestTimer } from '../../hooks/useRestTimer';
@@ -70,7 +71,13 @@ const TrainingScreen = ({ navigation, route }) => {
     loadExercises();
     initSocket();
     loadPendingCount();
+    // G48 review — App-level syncs (foreground, cold start, reconnect) change the queue while
+    // this screen is mounted; refresh the badges when any run ends and when the screen regains focus.
+    const offSync = subscribeSyncRuns(() => { loadPendingCount().catch(() => {}); });
+    const offFocus = navigation.addListener('focus', () => { loadPendingCount().catch(() => {}); });
     return () => {
+      offSync();
+      offFocus();
       socketRef.current?.disconnect();
     };
   }, []);

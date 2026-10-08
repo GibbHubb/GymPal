@@ -119,3 +119,25 @@ describe('only the owner replays', () => {
     expect(sentWith).toEqual([]);
   });
 });
+
+describe('review 2026-10-02: a different user calls during a run', () => {
+  it("B's call during A's run sends B's items with B's token, not A's result", async () => {
+    await loginAs(A);
+    await queue('a1');
+    await loginAs(B);
+    await queue('b1');
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    fetch.mockImplementation(async (url, init) => {
+      await gate;
+      sentWith.push([JSON.parse(init.body).client_id, init.headers.Authorization.replace('Bearer ', '')]);
+      return { ok: true, status: 201, json: async () => ({}) };
+    });
+    const runA = E.runSyncNow('http://api', A); // A's run, started before the switch
+    const runB = E.runSyncNow('http://api', B);
+    release();
+    await Promise.all([runA, runB]);
+    expect(sentWith).toEqual([['a1', A], ['b1', B]]);
+    expect(await ids()).toEqual([]);
+  });
+});

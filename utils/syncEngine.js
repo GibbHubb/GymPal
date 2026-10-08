@@ -4,7 +4,9 @@ import { tokenUserId } from './jwt';
 
 export const MAX_ATTEMPTS = 5;
 
-let _inflight = null; // { includeFailed, promise } while a run is going
+let _inflight = null; // the running run's promise
+let _rerun = null;    // the ONE follow-up run callers arriving mid-run share
+const _listeners = new Set();
 
 /**
  * Send queued workouts to the backend.
@@ -14,30 +16,51 @@ let _inflight = null; // { includeFailed, promise } while a run is going
  *   exhausted MAX_ATTEMPTS. They used to be terminal and invisible: five transient 500s during
  *   a deploy orphaned a real session forever.
  * - One run at a time. A NetInfo event and a cold-start sync firing together used to walk the
- *   queue twice; the server dedupes on client_id, but the client double-counted PBs. A call
- *   made while a run is in flight shares that run's result.
+ *   queue twice; the server dedupes on client_id, but the client double-counted PBs.
+ * - A call that arrives while a run is going does NOT share that run's result: the run took
+ *   its queue snapshot before the call (a workout queued since is not in it) and may hold
+ *   another user's token. Such calls queue one follow-up run, which they all share: the
+ *   latest caller's token, and includeFailed if any of them asked for it. (Review, 2026-10-02.)
  * - A 401/403 means the TOKEN is bad, not the item: the run stops and no attempt is counted
  *   (result.authFailed), so an expired token can no longer burn every item's retries.
  *
  * @returns {Promise<{ personalBests: object[], synced: number, authFailed: boolean }>}
  */
 export function runSync(apiBaseUrl, authToken, { includeFailed = false } = {}) {
-    if (_inflight) {
-        // An explicit sync must not be swallowed by an automatic one already running (NetInfo
-        // fires on subscribe, so at cold start one always is): run again once it finishes.
-        if (includeFailed && !_inflight.includeFailed) {
-            return _inflight.promise
-                .catch(() => {})
-                .then(() => runSync(apiBaseUrl, authToken, { includeFailed }));
-        }
-        return _inflight.promise;
+    if (!_inflight) return startRun(apiBaseUrl, authToken, includeFailed);
+    if (!_rerun) {
+        let resolve;
+        let reject;
+        const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+        _rerun = { apiBaseUrl, authToken, includeFailed, promise, resolve, reject };
+    } else {
+        _rerun.apiBaseUrl = apiBaseUrl;
+        _rerun.authToken = authToken;
+        _rerun.includeFailed = _rerun.includeFailed || includeFailed;
     }
-    const run = { includeFailed, promise: null };
-    run.promise = doSync(apiBaseUrl, authToken, includeFailed).finally(() => {
-        if (_inflight === run) _inflight = null;
+    return _rerun.promise;
+}
+
+function startRun(apiBaseUrl, authToken, includeFailed) {
+    const run = doSync(apiBaseUrl, authToken, includeFailed).finally(() => {
+        _inflight = null;
+        for (const fn of _listeners) {
+            try { fn(); } catch { /* a listener must not break the engine */ }
+        }
+        const next = _rerun;
+        _rerun = null;
+        if (next) {
+            startRun(next.apiBaseUrl, next.authToken, next.includeFailed).then(next.resolve, next.reject);
+        }
     });
     _inflight = run;
-    return run.promise;
+    return run;
+}
+
+/** Be told whenever a sync run finishes (e.g. to refresh a pending/failed badge). */
+export function subscribeSyncRuns(fn) {
+    _listeners.add(fn);
+    return () => _listeners.delete(fn);
 }
 
 /** An explicit sync: also retries items in STATUS.FAILED. */

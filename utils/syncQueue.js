@@ -42,7 +42,22 @@ export function isOwnedBy(item, ownerId) {
     return ownerId !== null && ownerId !== undefined && String(item.ownerId) === String(ownerId);
 }
 
-export async function enqueue(item) {
+// Review, 2026-10-02 — every write is a read-modify-write of ONE AsyncStorage key, and G48
+// made concurrent writers routine (a sync run removing items while a finished workout is
+// enqueued). Unserialised, one write overwrote the other: a just-logged workout lost, or a
+// synced one resurrected. All queue writes now go through this chain, one at a time.
+let _writeChain = Promise.resolve();
+function serialised(fn) {
+    const next = _writeChain.then(fn, fn);
+    _writeChain = next.catch(() => {});
+    return next;
+}
+
+export function enqueue(item) {
+    return serialised(() => enqueueNow(item));
+}
+
+async function enqueueNow(item) {
     const queue = await getQueue();
     const ownerId = item.ownerId ?? await currentOwnerId();
     queue.push({
@@ -62,16 +77,20 @@ export async function getQueue() {
     } catch { return []; }
 }
 
-export async function updateItem(id, patch) {
+export function updateItem(id, patch) {
+    return serialised(async () => {
     const queue = await getQueue();
     const updated = queue.map(item => item.id === id ? { ...item, ...patch } : item);
     await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(updated));
+    });
 }
 
-export async function removeItem(id) {
+export function removeItem(id) {
+    return serialised(async () => {
     const queue = await getQueue();
     const filtered = queue.filter(item => item.id !== id);
     await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(filtered));
+    });
 }
 
 /** Items an automatic sync will attempt for this user: exactly runSync's default selection. */
