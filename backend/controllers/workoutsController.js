@@ -31,11 +31,13 @@ const createWorkout = async (req, res) => {
     typeof name === 'string' && name.trim() ? name.trim() : 'Workout';
 
   try {
-    // Idempotency: if a client_id is provided and a row with that UUID already exists, return it
+    // Idempotency: if a client_id is provided and a row with that UUID already exists, return it.
+    // G59 — only the CALLER's row: unscoped, anyone who sent another user's client_id got that
+    // user's workout back. A clash with someone else's id now fails the insert instead.
     if (client_id) {
       const { rows: existing } = await db.query(
-        'SELECT * FROM Workouts WHERE client_id = $1',
-        [client_id]
+        'SELECT * FROM Workouts WHERE client_id = $1 AND user_id = $2',
+        [client_id, user_id]
       );
       if (existing.length > 0) {
         return res.status(200).json({
