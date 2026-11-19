@@ -12,7 +12,11 @@ export default function CustomButton({
   loading = false, 
   style, 
   textStyle, 
-  disabled = false 
+  disabled = false,
+  // G53 — screen readers: callers pass a label without the emoji in `title`; defaults to title.
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityRole = 'button',
 }) {
   const scale = useSharedValue(1);
 
@@ -43,6 +47,10 @@ export default function CustomButton({
       onPressOut={handlePressOut}
       disabled={disabled || loading}
       activeOpacity={0.9}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel || title}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
       <LinearGradient
         colors={[Theme.colors.primary, Theme.colors.primaryDark]}
@@ -51,7 +59,7 @@ export default function CustomButton({
         style={styles.gradient}
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#1A1A1A" />
+          <ActivityIndicator size="small" color={Theme.colors.onPrimary} />
         ) : (
           <Text style={[styles.text, textStyle]}>{title}</Text>
         )}
@@ -76,7 +84,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   text: {
-    color: '#1A1A1A',
+    color: Theme.colors.onPrimary,
     fontWeight: '900',
     fontSize: 16,
     letterSpacing: 1.2,

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { clearSession } from '../../utils/session';  // G47
 import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Theme } from '../../constants/Theme';
+import { Theme, primaryAlpha } from '../../constants/Theme';
 import CustomButton from '../../components/CustomButton';
 import ScreenWrapper from '../../components/ScreenWrapper';
 
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     color: Theme.colors.primary,
     marginBottom: Theme.spacing.xxl,
     textAlign: 'center',
-    textShadowColor: 'rgba(255, 215, 0, 0.4)',
+    textShadowColor: primaryAlpha(0.4),
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 15,
   },

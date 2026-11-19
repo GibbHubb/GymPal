@@ -81,20 +81,27 @@ const ClientHome = ({ navigation }) => {
     <ScreenWrapper scrollable={true}>
       {/* Logout Header */}
       <View style={styles.headerContainer}>
-         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+         <TouchableOpacity
+            onPress={handleLogout}
+            style={styles.logoutBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
+         >
             <Text style={styles.logoutText}>Logout</Text>
          </TouchableOpacity>
       </View>
 
       <View style={styles.contentContainer}>
         {/* GymPal Logo */}
-        <Text style={styles.title}>Welcome Back!</Text>
+        <Text style={styles.title} accessibilityRole="header">Welcome Back!</Text>
 
         {/* G16 — today's-session banner */}
         {today?.active && today?.template_name && (
           <TouchableOpacity
             style={styles.todayBanner}
             onPress={() => navigation.navigate('TrainingScreen')}
+            accessibilityRole="button"
+            accessibilityLabel={`Start today's session: ${today.template_name}, ${today.program_name}, week ${today.week} of ${today.total_weeks}`}
           >
             <Text style={styles.todayLabel}>📅 TODAY · {today.program_name} · W{today.week}/{today.total_weeks}</Text>
             <Text style={styles.todayTemplate}>{today.template_name}</Text>
@@ -111,22 +118,28 @@ const ClientHome = ({ navigation }) => {
         <View style={styles.buttonContainer}>
           <CustomButton
             title="📋 Intake"
+            accessibilityRole="button"
+            accessibilityLabel="Intake"
             onPress={() => navigation.navigate('IntakeScreen')}
             style={styles.actionBtn}
           />
           <CustomButton
             title="🌿 Lifestyle"
+            accessibilityRole="button"
+            accessibilityLabel="Lifestyle"
             onPress={() => navigation.navigate('LifestyleScreen')}
             style={styles.actionBtn}
           />
           <View style={styles.trainingBtnWrapper}>
             <CustomButton
               title="💪 Training"
+              accessibilityRole="button"
+              accessibilityLabel={pendingSyncCount > 0 ? `Training, ${pendingSyncCount} workout${pendingSyncCount === 1 ? '' : 's'} not synced` : 'Training'}
               onPress={() => navigation.navigate('TrainingScreen')}
               style={styles.actionBtn}
             />
             {pendingSyncCount > 0 && (
-              <View style={styles.badge}>
+              <View style={styles.badge} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
                 <Text style={styles.badgeText}>{pendingSyncCount}</Text>
               </View>
             )}
@@ -134,6 +147,8 @@ const ClientHome = ({ navigation }) => {
           {/* G30 — repeat the most recent logged workout */}
           <CustomButton
             title="🔁 Repeat last"
+            accessibilityRole="button"
+            accessibilityLabel="Repeat last workout"
             onPress={async () => {
               try {
                 let last;
@@ -156,11 +171,15 @@ const ClientHome = ({ navigation }) => {
           {/* G31 — opt-in weekly leaderboard */}
           <CustomButton
             title="🏆 Leaderboard"
+            accessibilityRole="button"
+            accessibilityLabel="Leaderboard"
             onPress={() => navigation.navigate('LeaderboardScreen')}
             style={styles.actionBtn}
           />
           <CustomButton
             title="📊 Progress"
+            accessibilityRole="button"
+            accessibilityLabel="Progress"
             onPress={() => navigation.navigate('ProgressScreen')}
             style={styles.actionBtn}
           />
@@ -168,7 +187,7 @@ const ClientHome = ({ navigation }) => {
 
         {/* G33 — saved workout templates */}
         <View style={styles.templatesSection}>
-          <Text style={styles.templatesHeader}>📋 My Templates</Text>
+          <Text style={styles.templatesHeader} accessibilityRole="header">📋 My Templates</Text>
           {templates.length === 0 ? (
             <Text style={styles.templatesEmpty}>
               No templates yet — save one from the Training screen.
@@ -179,6 +198,8 @@ const ClientHome = ({ navigation }) => {
                 <TouchableOpacity
                   style={styles.templateStart}
                   onPress={() => startTemplate(t)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Start template ${t.name}, ${t.exercises?.length || 0} exercise${(t.exercises?.length || 0) === 1 ? '' : 's'}`}
                 >
                   <Text style={styles.templateName}>{t.name}</Text>
                   <Text style={styles.templateMeta}>
@@ -188,6 +209,8 @@ const ClientHome = ({ navigation }) => {
                 <TouchableOpacity
                   style={styles.templateDelete}
                   onPress={() => handleDeleteTemplate(t)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete template ${t.name}`}
                 >
                   <Text style={styles.templateDeleteText}>✕</Text>
                 </TouchableOpacity>
@@ -213,6 +236,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   logoutBtn: {
+    minHeight: 44, // G53 — was ~33pt tall
+    justifyContent: 'center',
     paddingVertical: Theme.spacing.s,
     paddingHorizontal: Theme.spacing.m,
     backgroundColor: Theme.colors.surface,
@@ -258,7 +283,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: '#e53935',
+    backgroundColor: Theme.colors.dangerStrong, // G53 — white on #e53935 was 4.2:1
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -279,16 +304,16 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.l,
     padding: Theme.spacing.m,
     borderRadius: Theme.borderRadius?.l || 12,
-    backgroundColor: 'rgba(246, 176, 0, 0.12)',
+    backgroundColor: Theme.colors.primaryTint,
     borderWidth: 1,
-    borderColor: 'rgba(246, 176, 0, 0.35)',
+    borderColor: Theme.colors.primaryBorder,
   },
   todayBannerRest: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: 'rgba(255,255,255,0.08)',
   },
   todayLabel: {
-    color: 'rgba(255,255,255,0.55)',
+    color: Theme.colors.textSecondary,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
@@ -319,7 +344,7 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.s,
   },
   templatesEmpty: {
-    color: 'rgba(255,255,255,0.45)',
+    color: Theme.colors.textSecondary, // G53 — 45% white was 4.4:1
     fontSize: 13,
     fontStyle: 'italic',
   },
@@ -333,9 +358,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Theme.spacing.m,
     borderRadius: Theme.borderRadius?.m || 8,
-    backgroundColor: 'rgba(246, 176, 0, 0.12)',
+    backgroundColor: Theme.colors.primaryTint,
     borderWidth: 1,
-    borderColor: 'rgba(246, 176, 0, 0.35)',
+    borderColor: Theme.colors.primaryBorder,
   },
   templateName: {
     color: Theme.colors.text,
@@ -349,6 +374,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   templateDelete: {
+    minWidth: 44, // G53
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Theme.spacing.m,
@@ -358,7 +384,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(229,57,53,0.35)',
   },
   templateDeleteText: {
-    color: '#e53935',
+    color: Theme.colors.error, // G53 — #e53935 on its own tint was 3.6:1
     fontSize: 16,
     fontWeight: '700',
   },

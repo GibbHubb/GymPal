@@ -8,6 +8,7 @@ export default function CustomInput({
   onChangeText, 
   secureTextEntry, 
   style, 
+  accessibilityLabel, // G53 — defaults to the placeholder
   ...props 
 }) {
   const [isFocused, setIsFocused] = useState(false);
@@ -25,6 +26,7 @@ export default function CustomInput({
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
+        accessibilityLabel={accessibilityLabel || placeholder}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         {...props}

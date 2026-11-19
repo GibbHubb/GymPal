@@ -11,6 +11,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { fetchUsers, registerUser } from '../../api';
+import { Theme } from '../../constants/Theme';  // G53 — the one brand gold
 
 export default function ClientOverview({ navigation }) {
   const [users, setUsers] = useState([]);
@@ -129,7 +130,7 @@ export default function ClientOverview({ navigation }) {
       </TouchableOpacity>
 
       {loading && users.length === 0 ? (
-        <ActivityIndicator size="large" color="#f6b000" />
+        <ActivityIndicator size="large" color={Theme.colors.primary} />
       ) : (
 <FlatList
   data={users}
@@ -205,14 +206,14 @@ export default function ClientOverview({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, alignItems: 'center', backgroundColor: '#FFFFFF' },
   logo: { width: 150, height: 80 },
-  backButton: { position: 'absolute', top: 20, right: 20, backgroundColor: '#f6b000', padding: 10, borderRadius: 8 },
+  backButton: { position: 'absolute', top: 20, right: 20, backgroundColor: Theme.colors.primary, padding: 10, borderRadius: 8 },
   backButtonText: { color: '#1A1A1A', fontWeight: 'bold', fontSize: 18 },
   header: { fontSize: 24, fontWeight: 'bold', color: '#3274ba', marginBottom: 16 },
   searchInput: { borderWidth: 1, borderColor: '#8ebce6', borderRadius: 8, padding: 12, width: '90%', marginBottom: 16 },
   addButton: { backgroundColor: '#32a852', padding: 12, borderRadius: 8, marginBottom: 16 },
   addButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   row: { flex: 1, justifyContent: 'space-between', marginBottom: 12 },
-  userCard: { flex: 1, alignItems: 'center', backgroundColor: '#f6b000', padding: 12, marginHorizontal: 4, borderRadius: 8 },
+  userCard: { flex: 1, alignItems: 'center', backgroundColor: Theme.colors.primary, padding: 12, marginHorizontal: 4, borderRadius: 8 },
   username: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' },
 
   /** ✅ Restored Beautiful Modal Styles **/

@@ -13,7 +13,7 @@ import {
     TextInput, Alert, StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Theme } from '../../constants/Theme';
+import { Theme, primaryAlpha } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
 import {
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
         marginRight: 4,
     },
     dowHead: { backgroundColor: 'rgba(255,255,255,0.05)' },
-    weekHead: { backgroundColor: 'rgba(246,176,0,0.12)' },
+    weekHead: { backgroundColor: primaryAlpha(0.12) },
     headText: { color: Theme.colors.text, fontWeight: '700', fontSize: 12 },
     cell: {
         width: CELL_W, height: CELL_H,
@@ -266,8 +266,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
     cellFilled: {
-        backgroundColor: 'rgba(246, 176, 0, 0.18)',
-        borderColor: 'rgba(246, 176, 0, 0.4)',
+        backgroundColor: primaryAlpha(0.18),
+        borderColor: primaryAlpha(0.4),
     },
     cellText: { color: Theme.colors.text, fontSize: 11, textAlign: 'center' },
     actionBar: {

@@ -120,7 +120,7 @@ export default function TrainerScreen({ route, navigation }) {
   const baseGroupSize = Math.floor(numParticipants / numGroups)
   const extraMembers = numParticipants % numGroups
 
-  const groupColors = ["#fcc0d8", "#fc6e4c", "#f7bf0b", "#8ebce6"]
+  const groupColors = ["#fcc0d8", "#fc6e4c", Theme.colors.primary, "#8ebce6"]
 
   const groupSizes = new Array(numGroups).fill(baseGroupSize)
   for (let i = 0; i < extraMembers; i++) groupSizes[i]++

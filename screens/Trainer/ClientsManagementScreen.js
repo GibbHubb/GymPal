@@ -16,7 +16,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Theme } from '../../constants/Theme';
+import { Theme, primaryAlpha } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomHeader from '../../components/CustomHeader';
 import GlassCard from '../../components/GlassCard';
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   },
   tabActive: {
     borderColor: Theme.colors.primary,
-    backgroundColor: 'rgba(246,176,0,0.12)',
+    backgroundColor: primaryAlpha(0.12),
   },
   tabText: {
     color: Theme.colors.text,

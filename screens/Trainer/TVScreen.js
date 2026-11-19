@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, FlatList } from "react-native"
 import { io } from "socket.io-client"
 import { SERVER_URL } from "../../config/api"  // G54
+import { Theme } from "../../constants/Theme"  // G53 — the one brand gold
 
 // Create socket connection
 let socket = null
@@ -29,7 +30,7 @@ const createSocket = (serverUrl) => {
   return socket
 }
 
-const groupColors = ["#fcc0d8", "#fc6e4c", "#f7bf0b", "#8ebce6"]
+const groupColors = ["#fcc0d8", "#fc6e4c", Theme.colors.primary, "#8ebce6"]
 
 const TVScreen = () => {
   const [availableSessions, setAvailableSessions] = useState([])
@@ -452,7 +453,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   refreshButton: {
-    backgroundColor: "#f7bf0b",
+    backgroundColor: Theme.colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 8,

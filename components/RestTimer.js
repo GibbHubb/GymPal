@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Theme } from '../constants/Theme';
+import { Theme, primaryAlpha } from '../constants/Theme';
 
 function formatTime(secs) {
     const m = Math.floor(secs / 60);
@@ -27,7 +27,7 @@ export default function RestTimer({ remaining, totalSeconds, justFired, onAdjust
                 <View style={[styles.card, styles.cardDone]}>
                     <Text style={styles.doneText}>💪 Rest complete</Text>
                     <Text style={styles.doneSub}>Crush the next set</Text>
-                    <TouchableOpacity onPress={onDismiss} style={styles.btnPrimary}>
+                    <TouchableOpacity onPress={onDismiss} style={styles.btnPrimary} accessibilityRole="button" accessibilityLabel="Dismiss rest timer">
                         <Text style={styles.btnPrimaryText}>Dismiss</Text>
                     </TouchableOpacity>
                 </View>
@@ -41,7 +41,7 @@ export default function RestTimer({ remaining, totalSeconds, justFired, onAdjust
         <View style={styles.overlay} pointerEvents="box-none">
             <View style={styles.card}>
                 <Text style={styles.label}>Rest</Text>
-                <Text style={styles.time}>{formatTime(remaining)}</Text>
+                <Text style={styles.time} accessibilityLabel={`${remaining} seconds of rest left`}>{formatTime(remaining)}</Text>
 
                 {/* Slim progress bar */}
                 <View style={styles.barTrack}>
@@ -49,13 +49,13 @@ export default function RestTimer({ remaining, totalSeconds, justFired, onAdjust
                 </View>
 
                 <View style={styles.row}>
-                    <TouchableOpacity onPress={() => onAdjust(-15)} style={styles.btnSmall}>
+                    <TouchableOpacity onPress={() => onAdjust(-15)} style={styles.btnSmall} accessibilityRole="button" accessibilityLabel="Rest 15 seconds less">
                         <Text style={styles.btnSmallText}>-15s</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => onAdjust(15)} style={styles.btnSmall}>
+                    <TouchableOpacity onPress={() => onAdjust(15)} style={styles.btnSmall} accessibilityRole="button" accessibilityLabel="Rest 15 seconds more">
                         <Text style={styles.btnSmallText}>+15s</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={onSkip} style={styles.btnSkip}>
+                    <TouchableOpacity onPress={onSkip} style={styles.btnSkip} accessibilityRole="button" accessibilityLabel="Skip rest">
                         <Text style={styles.btnSkipText}>Skip</Text>
                     </TouchableOpacity>
                 </View>
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
         paddingVertical: 16, paddingHorizontal: 20,
         minWidth: 240,
         borderWidth: 1,
-        borderColor: 'rgba(246, 176, 0, 0.4)',
+        borderColor: primaryAlpha(0.4),
         shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
         elevation: 8,
     },
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     time: {
         fontFamily: 'ui-monospace',
         fontSize: 44, fontWeight: '800',
-        color: Theme?.colors?.primary || '#F6B000',
+        color: Theme.colors.primary,
         textAlign: 'center', marginBottom: 8,
     },
     barTrack: {
@@ -98,14 +98,14 @@ const styles = StyleSheet.create({
     },
     barFill: {
         height: '100%',
-        backgroundColor: Theme?.colors?.primary || '#F6B000',
+        backgroundColor: Theme.colors.primary,
     },
     row: {
         flexDirection: 'row', justifyContent: 'space-between', gap: 8,
     },
     btnSmall: {
         flex: 1,
-        paddingVertical: 10, paddingHorizontal: 12,
+        paddingVertical: 10, paddingHorizontal: 12, minHeight: 44, justifyContent: 'center', // G53
         borderRadius: 10,
         backgroundColor: 'rgba(255,255,255,0.08)',
         borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     btnSmallText: { color: '#f8fafc', fontSize: 13, fontWeight: '600' },
     btnSkip: {
         flex: 1,
-        paddingVertical: 10, paddingHorizontal: 12,
+        paddingVertical: 10, paddingHorizontal: 12, minHeight: 44, justifyContent: 'center', // G53
         borderRadius: 10,
         backgroundColor: 'rgba(248, 113, 113, 0.18)',
         borderWidth: 1, borderColor: 'rgba(248, 113, 113, 0.35)',
@@ -127,9 +127,9 @@ const styles = StyleSheet.create({
     },
     doneSub: { color: '#94a3b8', fontSize: 13, marginBottom: 12 },
     btnPrimary: {
-        paddingVertical: 10, paddingHorizontal: 24,
+        paddingVertical: 10, paddingHorizontal: 24, minHeight: 44, justifyContent: 'center', // G53
         borderRadius: 10,
-        backgroundColor: Theme?.colors?.primary || '#F6B000',
+        backgroundColor: Theme.colors.primary,
     },
-    btnPrimaryText: { color: '#000', fontSize: 14, fontWeight: '700' },
+    btnPrimaryText: { color: Theme.colors.onPrimary, fontSize: 14, fontWeight: '700' },
 });

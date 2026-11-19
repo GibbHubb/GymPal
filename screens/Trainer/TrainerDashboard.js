@@ -16,6 +16,15 @@ import GlassCard from '../../components/GlassCard';
 import { getClientStats, authApi } from '../../api';
 
 // G28 — RAG colors for the compliance chip
+// G53 — one spoken summary per client card, so TalkBack reads the stats in one stop.
+function clientCardLabel(item, c, lastSession) {
+  const parts = [item.username];
+  if (item.inactive) parts.push('inactive');
+  if (c) parts.push(c.status === 'no_plan' ? 'no plan' : `${c.logged} of ${c.assigned} planned sessions this week`);
+  parts.push(`${item.total_sessions} sessions`, `${item.streak} week streak`, `last session ${lastSession}`);
+  return parts.join(', ');
+}
+
 const COMPLIANCE_COLORS = {
   green:   { bg: '#dcfce7', fg: '#166534' },
   amber:   { bg: '#fef3c7', fg: '#92400e' },
@@ -94,6 +103,9 @@ export default function TrainerDashboard() {
     <TouchableOpacity
       style={styles.cardTouchable}
       onPress={() => navigation.navigate('ProfileScreen', { userId: item.user_id })}
+      accessibilityRole="button"
+      accessibilityLabel={clientCardLabel(item, compliance[item.user_id], formatLastSession(item.last_session, item.days_since))}
+      accessibilityHint="Opens the client's profile"
     >
       <GlassCard style={[styles.card, item.inactive && styles.cardInactive]}>
         <View style={styles.cardHeader}>
@@ -149,12 +161,17 @@ export default function TrainerDashboard() {
       <View style={styles.container}>
         {loading && !refreshing ? (
           <View style={styles.centerContent}>
-            <ActivityIndicator size="large" color={Theme.colors.primary} />
+            <ActivityIndicator size="large" color={Theme.colors.primary} accessibilityLabel="Loading clients" />
           </View>
         ) : error ? (
           <View style={styles.centerContent}>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryBtn} onPress={loadStats}>
+            <TouchableOpacity
+              style={styles.retryBtn}
+              onPress={loadStats}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading client stats"
+            >
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>
@@ -214,7 +231,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   inactiveBadge: {
-    backgroundColor: Theme.colors.error,
+    backgroundColor: Theme.colors.dangerStrong, // G53 — white on #FF4C4C was 3.3:1
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 4,
@@ -268,13 +285,15 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.m,
   },
   retryBtn: {
+    minHeight: 44, // G53 — was ~32pt tall
+    justifyContent: 'center',
     backgroundColor: Theme.colors.primary,
     paddingHorizontal: Theme.spacing.l,
     paddingVertical: Theme.spacing.s,
     borderRadius: Theme.borderRadius.m,
   },
   retryText: {
-    color: Theme.colors.background,
+    color: Theme.colors.onPrimary,
     fontWeight: '900',
     fontSize: 13,
     textTransform: 'uppercase',

@@ -13,6 +13,8 @@ export default function CustomHeader({ title, showBack = true, rightComponent })
           <TouchableOpacity 
             onPress={() => navigation.goBack()} 
             style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
@@ -20,7 +22,7 @@ export default function CustomHeader({ title, showBack = true, rightComponent })
       </View>
       
       <View style={styles.centerContainer}>
-        <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={styles.headerTitle} accessibilityRole="header">{title}</Text>
       </View>
       
       <View style={styles.rightContainer}>
@@ -62,9 +64,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44, // G53 — was 36x36, under the 44pt minimum
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Theme.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',

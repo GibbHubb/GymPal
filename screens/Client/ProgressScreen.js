@@ -9,7 +9,7 @@ import { LineChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { fetchProgressData, fetchExercises, fetchExerciseProgress, getBodyMetrics, postBodyMetric } from '../../api';
-import { Theme } from '../../constants/Theme';
+import { Theme, primaryAlpha } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomHeader from '../../components/CustomHeader';
 import GlassCard from '../../components/GlassCard';
@@ -145,7 +145,7 @@ const ProgressScreen = () => {
       setExerciseChartData({
         labels,
         datasets: [
-          { data: weightData, color: (opacity = 1) => `rgba(246, 176, 0, ${opacity})`, strokeWidth: 2 },
+          { data: weightData, color: (opacity = 1) => primaryAlpha(opacity), strokeWidth: 2 },
           { data: repsData, color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, strokeWidth: 2 },
         ],
         legend: ['Weight (kg)', 'Reps'],
@@ -221,6 +221,7 @@ const ProgressScreen = () => {
         <Text style={styles.label}>Select Category</Text>
         <View style={styles.pickerWrapper}>
           <Picker
+            accessibilityLabel="Exercise category"
             selectedValue={selectedCategory}
             onValueChange={(itemValue) => setSelectedCategory(itemValue)}
             style={styles.picker}
@@ -253,7 +254,7 @@ const ProgressScreen = () => {
                 backgroundGradientFrom: Theme.colors.surface,
                 backgroundGradientTo: Theme.colors.surface,
                 decimalPlaces: 1,
-                color: (opacity = 1) => `rgba(255, 215, 0, ${opacity})`,
+                color: (opacity = 1) => primaryAlpha(opacity),
                 labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
                 style: { borderRadius: 16 },
                 propsForDots: { r: '5', strokeWidth: '2', stroke: Theme.colors.primary },
@@ -283,6 +284,7 @@ const ProgressScreen = () => {
         <TextInput
           style={styles.searchInput}
           placeholder="Type to filter..."
+          accessibilityLabel="Filter exercises"
           placeholderTextColor={Theme.colors.textSecondary}
           value={exerciseSearch}
           onChangeText={setExerciseSearch}
@@ -321,7 +323,7 @@ const ProgressScreen = () => {
                 backgroundGradientFrom: Theme.colors.surface,
                 backgroundGradientTo: Theme.colors.surface,
                 decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(255, 215, 0, ${opacity})`,
+                color: (opacity = 1) => primaryAlpha(opacity),
                 labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
                 style: { borderRadius: 16 },
                 propsForDots: { r: '4', strokeWidth: '2', stroke: Theme.colors.primary },
@@ -332,7 +334,7 @@ const ProgressScreen = () => {
           </GlassCard>
           <View style={styles.legendRow}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#F6B000' }]} />
+              <View style={[styles.legendDot, { backgroundColor: Theme.colors.primary }]} />
               <Text style={styles.legendText}>Weight (kg)</Text>
             </View>
             <View style={styles.legendItem}>
@@ -362,7 +364,7 @@ const ProgressScreen = () => {
     const labels = recent.map((m) => new Date(m.logged_at).toLocaleDateString([], { month: 'short', day: 'numeric' }));
 
     const datasets = [
-      { data: weightHistory.length ? weightHistory : [0], color: (opacity = 1) => `rgba(246, 176, 0, ${opacity})`, strokeWidth: 2 },
+      { data: weightHistory.length ? weightHistory : [0], color: (opacity = 1) => primaryAlpha(opacity), strokeWidth: 2 },
     ];
     const legend = ['Weight (kg)'];
     if (hasBf) {
@@ -381,6 +383,7 @@ const ProgressScreen = () => {
           <TextInput
             style={styles.searchInput}
             placeholder="Weight (kg) *"
+            accessibilityLabel="Body weight in kilograms, required"
             placeholderTextColor={Theme.colors.textSecondary}
             value={mWeight}
             onChangeText={setMWeight}
@@ -389,6 +392,7 @@ const ProgressScreen = () => {
           <TextInput
             style={styles.searchInput}
             placeholder="Body Fat % (optional)"
+            accessibilityLabel="Body fat percent, optional"
             placeholderTextColor={Theme.colors.textSecondary}
             value={mBodyFat}
             onChangeText={setMBodyFat}
@@ -397,6 +401,7 @@ const ProgressScreen = () => {
           <TextInput
             style={[styles.searchInput, { height: 60 }]}
             placeholder="Notes (optional)"
+            accessibilityLabel="Notes, optional"
             placeholderTextColor={Theme.colors.textSecondary}
             value={mNotes}
             onChangeText={setMNotes}
@@ -406,6 +411,9 @@ const ProgressScreen = () => {
             style={[styles.metricSubmitBtn, mSubmitting && { opacity: 0.6 }]}
             onPress={submitBodyMetric}
             disabled={mSubmitting}
+            accessibilityRole="button"
+            accessibilityLabel={mSubmitting ? 'Saving entry' : 'Log body metrics entry'}
+            accessibilityState={{ disabled: mSubmitting, busy: mSubmitting }}
           >
             <Text style={styles.metricSubmitText}>{mSubmitting ? 'Saving...' : 'Log Entry'}</Text>
           </TouchableOpacity>
@@ -428,7 +436,7 @@ const ProgressScreen = () => {
                   backgroundGradientFrom: Theme.colors.surface,
                   backgroundGradientTo: Theme.colors.surface,
                   decimalPlaces: 1,
-                  color: (opacity = 1) => `rgba(255, 215, 0, ${opacity})`,
+                  color: (opacity = 1) => primaryAlpha(opacity),
                   labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
                   style: { borderRadius: 16 },
                   propsForDots: { r: '4', strokeWidth: '2', stroke: Theme.colors.primary },
@@ -439,7 +447,7 @@ const ProgressScreen = () => {
             </GlassCard>
             <View style={styles.legendRow}>
               <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#F6B000' }]} />
+                <View style={[styles.legendDot, { backgroundColor: Theme.colors.primary }]} />
                 <Text style={styles.legendText}>Weight (kg)</Text>
               </View>
               {hasBf && (
@@ -464,22 +472,31 @@ const ProgressScreen = () => {
       <CustomHeader title="Progress Tracker" />
       <View style={styles.container}>
         {/* Tab toggle */}
-        <View style={styles.tabRow}>
+        <View style={styles.tabRow} accessibilityRole="tablist">
           <TouchableOpacity
             style={[styles.tab, activeTab === 'category' && styles.tabActive]}
             onPress={() => setActiveTab('category')}
+            accessibilityRole="tab"
+            accessibilityLabel="By category"
+            accessibilityState={{ selected: activeTab === 'category' }}
           >
             <Text style={[styles.tabText, activeTab === 'category' && styles.tabTextActive]}>By Category</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'exercise' && styles.tabActive]}
             onPress={() => setActiveTab('exercise')}
+            accessibilityRole="tab"
+            accessibilityLabel="By exercise"
+            accessibilityState={{ selected: activeTab === 'exercise' }}
           >
             <Text style={[styles.tabText, activeTab === 'exercise' && styles.tabTextActive]}>By Exercise</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'metrics' && styles.tabActive]}
             onPress={() => setActiveTab('metrics')}
+            accessibilityRole="tab"
+            accessibilityLabel="Body metrics"
+            accessibilityState={{ selected: activeTab === 'metrics' }}
           >
             <Text style={[styles.tabText, activeTab === 'metrics' && styles.tabTextActive]}>Body</Text>
           </TouchableOpacity>
@@ -505,6 +522,8 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
+    minHeight: 44, // G53 — was ~37pt tall
+    justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: Theme.borderRadius.m,
     borderWidth: 1,
@@ -524,7 +543,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   tabTextActive: {
-    color: Theme.colors.background,
+    color: Theme.colors.onPrimary,
   },
   pickerCard: {
     marginBottom: Theme.spacing.l,
@@ -561,13 +580,15 @@ const styles = StyleSheet.create({
     maxHeight: 180,
   },
   exerciseItem: {
+    minHeight: 44, // G53 — was ~39pt tall
+    justifyContent: 'center',
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.glassBorder,
   },
   exerciseItemActive: {
-    backgroundColor: 'rgba(246, 176, 0, 0.15)',
+    backgroundColor: primaryAlpha(0.15),
     borderRadius: Theme.borderRadius.s,
   },
   exerciseItemText: {
@@ -614,10 +635,10 @@ const styles = StyleSheet.create({
   infoBox: {
     marginTop: Theme.spacing.xl,
     padding: Theme.spacing.m,
-    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+    backgroundColor: primaryAlpha(0.05),
     borderRadius: Theme.borderRadius.m,
     borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.2)',
+    borderColor: primaryAlpha(0.2),
   },
   infoText: {
     color: Theme.colors.primary,
@@ -647,6 +668,8 @@ const styles = StyleSheet.create({
   },
   // G10 — body metrics styles
   metricSubmitBtn: {
+    minHeight: 44, // G53 — was ~41pt tall
+    justifyContent: 'center',
     marginTop: 8,
     backgroundColor: Theme.colors.primary,
     paddingVertical: 12,
@@ -654,7 +677,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   metricSubmitText: {
-    color: Theme.colors.background,
+    color: Theme.colors.onPrimary,
     fontWeight: '900',
     fontSize: 13,
     textTransform: 'uppercase',

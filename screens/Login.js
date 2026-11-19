@@ -10,7 +10,7 @@ import { saveLogin } from '../utils/session';  // G47
 import { BlurView } from 'expo-blur';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { loginUser } from '../api';
-import { Theme } from '../constants/Theme';
+import { Theme, primaryAlpha } from '../constants/Theme';
 import CustomButton from '../components/CustomButton';
 import CustomInput from '../components/CustomInput';
 
@@ -53,12 +53,13 @@ export default function LoginScreen({ navigation, refreshAuth }) {
       <View style={styles.overlay}>
         <Animated.View style={styles.animatedWrapper} entering={FadeInDown.duration(800).springify()}>
           <BlurView intensity={80} tint="dark" style={styles.contentContainer}>
-            <Text style={styles.header}>GymPal</Text>
+            <Text style={styles.header} accessibilityRole="header">GymPal</Text>
             <Text style={styles.subtext}>Welcome back. Ascend to new heights.</Text>
 
             <View style={styles.formContainer}>
               <CustomInput
                 placeholder="Username"
+                accessibilityLabel="Username"
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
@@ -67,6 +68,7 @@ export default function LoginScreen({ navigation, refreshAuth }) {
 
               <CustomInput
                 placeholder="Password"
+                accessibilityLabel="Password"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -74,6 +76,9 @@ export default function LoginScreen({ navigation, refreshAuth }) {
 
               <CustomButton 
                 title="Login"
+                accessibilityRole="button"
+                accessibilityLabel="Log in"
+                accessibilityHint="Signs in with the username and password above"
                 onPress={handleLogin}
                 loading={loading}
                 style={styles.loginBtn}
@@ -116,7 +121,7 @@ const styles = StyleSheet.create({
     fontSize: 48,
     color: Theme.colors.primary,
     marginBottom: Theme.spacing.s,
-    textShadowColor: 'rgba(255,215,0,0.5)',
+    textShadowColor: primaryAlpha(0.5),
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
   },

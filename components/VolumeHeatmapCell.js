@@ -3,15 +3,16 @@
 
 import React from 'react';
 import { TouchableOpacity, View, StyleSheet } from 'react-native';
+import { primaryAlpha } from '../constants/Theme';  // G53 — the one brand gold
 
 const CELL = 12;       // px square
 const GAP = 2;         // px between cells
 const COLOURS = [
     'rgba(255,255,255,0.05)',  // 0 — empty
-    'rgba(246, 176, 0, 0.30)', // 1-2 sets
-    'rgba(246, 176, 0, 0.55)', // 3-4
-    'rgba(246, 176, 0, 0.78)', // 5-6
-    'rgba(246, 176, 0, 1.00)', // 7+
+    primaryAlpha(0.30), // 1-2 sets
+    primaryAlpha(0.55), // 3-4
+    primaryAlpha(0.78), // 5-6
+    primaryAlpha(1.00), // 7+
 ];
 
 function VolumeHeatmapCell({ intensity, future, onPress, ariaLabel }) {
