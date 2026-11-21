@@ -9,6 +9,7 @@ import ScreenWrapper from "../../components/ScreenWrapper"
 import CustomButton from "../../components/CustomButton"
 import { finishGroupWorkout, fetchTemplates, createTemplate, deleteTemplate } from "../../api"
 import { SERVER_URL } from "../../config/api"  // G54
+import { say, sayCount } from "../../utils/a11yText"  // G61
 
 let socket = null
 
@@ -502,9 +503,10 @@ export default function TrainerScreen({ route, navigation }) {
             placeholderTextColor="#888"
           />
           <TouchableOpacity
+            // G61 — registerAsTrainer only ever goes live (it never turns a session off), so this
+            // is a plain button whose label carries the status; a switch would promise an "off".
             accessibilityRole="button"
-            accessibilityLabel={sessionActive ? 'Session is live' : 'Go live'}
-            accessibilityState={{ checked: sessionActive }}
+            accessibilityLabel={sessionActive ? 'Session is live. Register it again' : 'Go live'}
             style={[
               styles.sessionStatusButton,
               sessionActive ? styles.sessionActiveButton : styles.sessionInactiveButton,
@@ -580,7 +582,7 @@ export default function TrainerScreen({ route, navigation }) {
                       >
                         <View style={styles.dataBox}>
                           <TextInput
-                            accessibilityLabel={`${participant.participant_name || 'Participant'}, ${exercise.exercise_name}, weight`}
+                            accessibilityLabel={`${say(participant.participant_name)}, ${say(exercise.exercise_name)}, weight`}
                             style={styles.dataText}
                             value={String(participant.weights?.[exercise.exercise_id] || "")}
                             onChangeText={(text) =>
@@ -594,7 +596,7 @@ export default function TrainerScreen({ route, navigation }) {
                         </View>
                         <View style={styles.dataBox}>
                           <TextInput
-                            accessibilityLabel={`${participant.participant_name || 'Participant'}, ${exercise.exercise_name}, reps`}
+                            accessibilityLabel={`${say(participant.participant_name)}, ${say(exercise.exercise_name)}, reps`}
                             style={styles.dataText}
                             value={String(participant.reps?.[exercise.exercise_id] || "")}
                             onChangeText={(text) =>
@@ -745,11 +747,11 @@ export default function TrainerScreen({ route, navigation }) {
               ) : (
                 templates.map((t) => (
                   <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: Theme.colors.glassBorder }}>
-                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Load template ${t.name}, ${t.exercises.length} exercises`} style={{ flex: 1 }} onPress={() => handleLoadTemplate(t)}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Load template ${say(t.name)}, ${sayCount(t.exercises?.length, 'exercise')}`} style={{ flex: 1 }} onPress={() => handleLoadTemplate(t)}>
                       <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{t.name}</Text>
                       <Text style={{ color: '#888', fontSize: 11 }}>{t.exercises.length} exercises</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete template ${t.name}`} onPress={() => handleDeleteTemplate(t.id)}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete template ${say(t.name)}`} onPress={() => handleDeleteTemplate(t.id)}>
                       <Text style={{ color: Theme.colors.error, fontSize: 16, paddingHorizontal: 8 }}>✕</Text>
                     </TouchableOpacity>
                   </View>

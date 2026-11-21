@@ -9,6 +9,7 @@ import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import CustomButton from '../../components/CustomButton';
 import { fetchPrograms, createProgram, deleteProgram } from '../../api';
+import { say, sayCount } from '../../utils/a11yText';  // G61
 
 export default function ProgramsListScreen() {
     const navigation = useNavigation();
@@ -124,7 +125,7 @@ export default function ProgramsListScreen() {
                 renderItem={({ item }) => (
                     <TouchableOpacity
                         accessibilityRole="button"
-                        accessibilityLabel={`Open program ${item.name}, ${item.total_weeks} week${item.total_weeks === 1 ? '' : 's'}`}
+                        accessibilityLabel={`Open program ${say(item.name)}, ${sayCount(item.total_weeks, 'week')}`}
                         style={styles.row}
                         onPress={() => navigation.navigate('ProgramBuilder', { programId: item.id })}
                     >
@@ -132,7 +133,7 @@ export default function ProgramsListScreen() {
                             <Text style={styles.rowTitle}>{item.name}</Text>
                             <Text style={styles.rowMeta}>{item.total_weeks} week{item.total_weeks === 1 ? '' : 's'}</Text>
                         </View>
-                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete program ${item.name}`} onPress={() => confirmDelete(item)} hitSlop={12}>
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete program ${say(item.name)}`} onPress={() => confirmDelete(item)} hitSlop={12}>
                             <Text style={styles.del}>✕</Text>
                         </TouchableOpacity>
                     </TouchableOpacity>

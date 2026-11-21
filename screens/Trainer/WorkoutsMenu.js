@@ -19,6 +19,7 @@ import {
   fetchGroupWorkoutDetails,
 } from '../../api';
 import { Theme } from '../../constants/Theme';  // G53 — the one brand gold
+import { say, sayDate } from '../../utils/a11yText';  // G61
 
 
 export default function WorkoutsMenu({ navigation }) {
@@ -126,7 +127,7 @@ export default function WorkoutsMenu({ navigation }) {
         renderItem={({ item }) => (
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel={`Edit workout ${item.name}, ${new Date(item.date).toLocaleDateString()}`}
+            accessibilityLabel={`Edit workout ${say(item.name)}, ${sayDate(item.date)}`}
             style={styles.workoutItem}
             onPress={() => handleNavigateToEditWorkout(item.group_workout_id)}
           >

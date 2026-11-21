@@ -17,6 +17,8 @@ import CustomButton from '../../components/CustomButton';
 import CustomHeader from '../../components/CustomHeader';
 import GlassCard from '../../components/GlassCard';
 import { ActivityIndicator } from 'react-native';
+import { activateAndLongPress, a11yActionHandler } from '../../utils/a11yActions';  // G61
+import { say } from '../../utils/a11yText';  // G61
 
 export default function CreateWorkout({ navigation }) {
   const [workoutName, setWorkoutName] = useState('');
@@ -58,6 +60,17 @@ export default function CreateWorkout({ navigation }) {
   const updateExercise = (index, field, value) => {
     setExercises(exercises.map((exercise, i) => (i === index ? { ...exercise, [field]: value } : exercise)));
   };
+
+  // G61 — the G27 superset/drop-set chips called handleExerciseChange, which was never defined
+  // (a tap threw a ReferenceError). Functional update so the drop-set's two calls compose.
+  const handleExerciseChange = (index, field, value) => {
+    setExercises((prev) => prev.map((exercise, i) => (i === index ? { ...exercise, [field]: value } : exercise)));
+  };
+  // Superset chip: tap marks the row a superset, long press links it to the previous row.
+  const toggleSupersetKind = (index, exercise) =>
+    handleExerciseChange(index, 'group_kind', exercise.group_kind === 'superset' ? null : 'superset');
+  const toggleLinkPrevious = (index, exercise) =>
+    handleExerciseChange(index, 'group_with_previous', !exercise.group_with_previous);
 
   const handleSearch = (text, index) => {
     updateExercise(index, 'name', text);
@@ -198,13 +211,20 @@ export default function CreateWorkout({ navigation }) {
             {index > 0 && (
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 <TouchableOpacity
+                  // G61 — activate toggles "superset" (that is what `checked` reports); linking to
+                  // the previous row is the long press, offered to screen readers as an action.
                   accessibilityRole="togglebutton"
-                  accessibilityLabel={`Superset exercise ${index + 1} with the previous one`}
-                  accessibilityHint="Long press to toggle grouping with the previous exercise"
-                  accessibilityState={{ checked: exercise.group_kind === 'superset' && !!exercise.group_with_previous }}
-                  onPress={() => handleExerciseChange(index, 'group_kind',
-                    exercise.group_kind === 'superset' ? null : 'superset')}
-                  onLongPress={() => handleExerciseChange(index, 'group_with_previous', !exercise.group_with_previous)}
+                  accessibilityLabel={`Superset, exercise ${index + 1}`}
+                  accessibilityState={{ checked: exercise.group_kind === 'superset' }}
+                  accessibilityValue={{ text: exercise.group_with_previous ? 'linked to the previous exercise' : 'not linked to the previous exercise' }}
+                  accessibilityHint="Use the actions menu to link or unlink it with the previous exercise"
+                  accessibilityActions={activateAndLongPress(exercise.group_with_previous ? 'Unlink from the previous exercise' : 'Link with the previous exercise')}
+                  onAccessibilityAction={a11yActionHandler({
+                    activate: () => toggleSupersetKind(index, exercise),
+                    longpress: () => toggleLinkPrevious(index, exercise),
+                  })}
+                  onPress={() => toggleSupersetKind(index, exercise)}
+                  onLongPress={() => toggleLinkPrevious(index, exercise)}
                 >
                   <Text style={{
                     color: exercise.group_kind === 'superset' && exercise.group_with_previous ? '#22c55e' : '#94a3b8',
@@ -252,7 +272,7 @@ export default function CreateWorkout({ navigation }) {
                 {searchResults[index].map((option) => (
                   <TouchableOpacity 
                     accessibilityRole="button"
-                    accessibilityLabel={`Choose ${option.name}`}
+                    accessibilityLabel={`Choose ${say(option.name)}`}
                     key={option.exercise_id} 
                     style={styles.dropdownItem} 
                     onPress={() => handleSelectExercise(index, option)}

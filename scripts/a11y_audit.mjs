@@ -48,7 +48,7 @@ export const G61_SCREENS = [
 
 export const AUDITED = [...CORE_SCREENS, ...G61_SCREENS];
 
-const TAPPABLE =['TouchableOpacity', 'TouchableHighlight', 'TouchableWithoutFeedback', 'Pressable', 'CustomButton'];
+const TAPPABLE = ['TouchableOpacity', 'TouchableHighlight', 'TouchableWithoutFeedback', 'Pressable', 'CustomButton'];
 const FIELD = ['TextInput', 'CustomInput', 'Picker'];
 
 /** The attribute text of a JSX tag starting at `from`, honouring `{...}` (which may hold `=>`). */
@@ -67,7 +67,7 @@ function hasProp(attrs, name) {
   return new RegExp(`(^|\\s)${name}\\s*=`).test(attrs);
 }
 
-/** -> [{ tag, line, kind, missing: ['accessibilityLabel', ...] }] for every interactive element */
+/** -> [{ tag, line, kind, attrs, missing: ['accessibilityLabel', ...] }] for every interactive element */
 export function scanSource(src) {
   const re = new RegExp(`<(${[...TAPPABLE, ...FIELD].join('|')})(?=[\\s>/])`, 'g');
   const out = [];
@@ -81,7 +81,7 @@ export function scanSource(src) {
     const optedOut = /(^|\s)accessible=\{false\}/.test(attrs);
     const need = optedOut ? [] : kind === 'tappable' ? ['accessibilityLabel', 'accessibilityRole'] : ['accessibilityLabel'];
     const line = src.slice(0, m.index).split('\n').length;
-    out.push({ tag, line, kind, missing: need.filter((p) => !hasProp(attrs, p)) });
+    out.push({ tag, line, kind, attrs, missing: need.filter((p) => !hasProp(attrs, p)) });
   }
   return out;
 }

@@ -5,6 +5,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, FlatList } from "
 import { io } from "socket.io-client"
 import { SERVER_URL } from "../../config/api"  // G54
 import { Theme } from "../../constants/Theme"  // G53 — the one brand gold
+import { say, sayCount } from "../../utils/a11yText"  // G61
 
 // Create socket connection
 let socket = null
@@ -257,7 +258,7 @@ const TVScreen = () => {
               data={availableSessions}
               keyExtractor={(item) => item.sessionId}
               renderItem={({ item }) => (
-                <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Join session ${item.sessionName}, workout ${item.workoutName || 'unknown'}, ${item.participantCount || 0} participants`} style={styles.sessionItem} onPress={() => joinSession(item)}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Join session ${say(item.sessionName)}, workout ${say(item.workoutName)}, ${sayCount(item.participantCount || 0, 'participant')}`} style={styles.sessionItem} onPress={() => joinSession(item)}>
                   <Text style={styles.sessionName}>{item.sessionName}</Text>
                   <Text style={styles.sessionDetails}>
                     Workout: {item.workoutName || "Unknown"} | Participants: {item.participantCount || 0}

@@ -19,6 +19,7 @@ import CustomButton from '../../components/CustomButton';
 import {
     fetchProgramDetail, upsertProgramDay, assignProgram, fetchTemplates,
 } from '../../api';
+import { say } from '../../utils/a11yText';  // G61
 
 const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -154,7 +155,7 @@ export default function ProgramBuilderScreen() {
                                 return (
                                     <TouchableOpacity
                                         accessibilityRole="button"
-                                        accessibilityLabel={`Week ${w}, ${label}: ${cell ? cell.template_name : 'rest day'}. Change template`}
+                                        accessibilityLabel={`Week ${w}, ${label}: ${cell ? say(cell.template_name) : 'rest day'}. Change template`}
                                         key={w}
                                         style={[styles.cell, cell ? styles.cellFilled : null]}
                                         onPress={() => setPickerCell({ week: w, dow })}
@@ -177,7 +178,13 @@ export default function ProgramBuilderScreen() {
             {/* Template picker */}
             <Modal visible={!!pickerCell} animationType="fade" transparent onRequestClose={() => setPickerCell(null)}>
                 <TouchableOpacity accessible={false} style={styles.modalBackdrop} activeOpacity={1} onPress={() => setPickerCell(null)}>
-                    <TouchableOpacity accessible={false} activeOpacity={1} style={styles.modalCard}>
+                    <TouchableOpacity
+                        accessible={false}
+                        accessibilityViewIsModal
+                        onAccessibilityEscape={() => setPickerCell(null)}
+                        activeOpacity={1}
+                        style={styles.modalCard}
+                    >
                         <Text style={styles.modalTitle}>
                             Pick a template — Week {pickerCell?.week}, {DOW_LABELS[pickerCell?.dow ?? 0]}
                         </Text>
@@ -196,7 +203,7 @@ export default function ProgramBuilderScreen() {
                             {templates.map((t) => (
                                 <TouchableOpacity
                                     accessibilityRole="button"
-                                    accessibilityLabel={`Use template ${t.name}`}
+                                    accessibilityLabel={`Use template ${say(t.name)}`}
                                     key={t.id}
                                     style={styles.modalRow}
                                     onPress={() => updateCell(pickerCell.week, pickerCell.dow, t.id)}
@@ -205,6 +212,15 @@ export default function ProgramBuilderScreen() {
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
+                        {/* G61 — a visible way out for screen-reader users (the backdrop is not focusable) */}
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Close the template picker"
+                            style={styles.modalRow}
+                            onPress={() => setPickerCell(null)}
+                        >
+                            <Text style={[styles.modalRowText, { color: Theme.colors.textSecondary }]}>Close</Text>
+                        </TouchableOpacity>
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>
@@ -212,7 +228,13 @@ export default function ProgramBuilderScreen() {
             {/* Assign modal */}
             <Modal visible={showAssign} animationType="fade" transparent onRequestClose={() => setShowAssign(false)}>
                 <TouchableOpacity accessible={false} style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAssign(false)}>
-                    <TouchableOpacity accessible={false} activeOpacity={1} style={styles.modalCard}>
+                    <TouchableOpacity
+                        accessible={false}
+                        accessibilityViewIsModal
+                        onAccessibilityEscape={() => setShowAssign(false)}
+                        activeOpacity={1}
+                        style={styles.modalCard}
+                    >
                         <Text style={styles.modalTitle}>Assign program</Text>
                         <Text style={styles.label}>Client user_id</Text>
                         <TextInput

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { fetchUsers, registerUser } from '../../api';
 import { Theme } from '../../constants/Theme';  // G53 — the one brand gold
+import { say } from '../../utils/a11yText';  // G61
 
 export default function ClientOverview({ navigation }) {
   const [users, setUsers] = useState([]);
@@ -143,7 +144,7 @@ export default function ClientOverview({ navigation }) {
     return (
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel={`Open profile of ${item.username}, ${item.role}`}
+        accessibilityLabel={`Open profile of ${say(item.username)}, ${say(item.role)}`}
         style={styles.userCard}
         onPress={() => navigation.navigate('ProfileScreen', { userId: item.user_id })}
       >

@@ -9,7 +9,9 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { auditFiles, scanSource, countA11yProps, CORE_SCREENS, G61_SCREENS } from '../../scripts/a11y_audit.mjs';
+import { auditFiles, scanSource, countA11yProps, CORE_SCREENS, G61_SCREENS, AUDITED } from '../../scripts/a11y_audit.mjs';
+import { activateAndLongPress, a11yActionHandler } from '../a11yActions';
+import { say, sayCount, sayDate, UNKNOWN } from '../a11yText';
 import { audit, contrast, styleBlock, PAIRS } from '../../scripts/contrast_audit.mjs';
 
 const ROOT = path.join(__dirname, '..', '..');
@@ -68,6 +70,85 @@ describe('G61 — screen-reader labels on every other routed screen', () => {
     const [row] = auditFiles(['components/VolumeHeatmapCell.js']);
     expect(row.items).toHaveLength(1);
     expect(row.items[0].missing).toEqual([]);
+  });
+});
+
+describe('G61 review — honest roles, reachable actions, no "undefined" read aloud', () => {
+  const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
+
+  it('a11yActionHandler runs the named action and ignores unknown ones', () => {
+    const calls = [];
+    const handle = a11yActionHandler({ activate: () => calls.push('a'), longpress: () => calls.push('l') });
+    handle({ nativeEvent: { actionName: 'activate' } });
+    handle({ nativeEvent: { actionName: 'longpress' } });
+    handle({ nativeEvent: { actionName: 'magicTap' } });
+    handle(undefined);
+    expect(calls).toEqual(['a', 'l']);
+    expect(activateAndLongPress('Link')).toEqual([{ name: 'activate' }, { name: 'longpress', label: 'Link' }]);
+  });
+
+  it('CreateWorkout superset chip: screen-reader activate/longpress run the same handlers as tap/long press', () => {
+    const src = read('screens/Trainer/CreateWorkout.js');
+    expect(src).toMatch(/const handleExerciseChange = /); // was called but never defined
+    const chip = scanSource(src).find((i) => /Superset, exercise/.test(i.attrs)).attrs;
+    expect(chip).toMatch(/onPress=\{\(\) => toggleSupersetKind\(index, exercise\)\}/);
+    expect(chip).toMatch(/onLongPress=\{\(\) => toggleLinkPrevious\(index, exercise\)\}/);
+    expect(chip).toMatch(/activate: \(\) => toggleSupersetKind\(index, exercise\)/);
+    expect(chip).toMatch(/longpress: \(\) => toggleLinkPrevious\(index, exercise\)/);
+    expect(chip).toMatch(/accessibilityActions=\{activateAndLongPress\(/);
+    // `checked` reports what activate toggles (group_kind), not the long-press link
+    expect(chip).toMatch(/accessibilityState=\{\{ checked: exercise\.group_kind === 'superset' \}\}/);
+  });
+
+  it('ProgramBuilder modals can be escaped by VoiceOver and the picker has a visible Close', () => {
+    const src = read('screens/Trainer/ProgramBuilderScreen.js');
+    const cards = scanSource(src).filter((i) => /style=\{styles\.modalCard\}/.test(i.attrs));
+    expect(cards).toHaveLength(2);
+    for (const c of cards) {
+      expect(c.attrs).toMatch(/accessibilityViewIsModal/);
+      expect(c.attrs).toMatch(/onAccessibilityEscape=\{\(\) => set(PickerCell\(null\)|ShowAssign\(false\))\}/);
+    }
+    expect(src).toMatch(/accessibilityLabel="Close the template picker"/);
+  });
+
+  it('no button-role element reports a checked state (checked belongs to switch/checkbox/radio/togglebutton)', () => {
+    const bad = AUDITED.flatMap((f) => scanSource(read(f))
+      .filter((i) => /accessibilityRole="button"/.test(i.attrs) && /accessibilityState=\{\{[^}]*checked/.test(i.attrs))
+      .map((i) => `${f}:${i.line}`));
+    expect(bad).toEqual([]);
+  });
+
+  it('say/sayCount/sayDate never produce undefined, null, NaN or Invalid Date', () => {
+    for (const v of [undefined, null, '', '  ', NaN, Infinity]) expect(say(v)).toBe(UNKNOWN);
+    expect(say('Bob')).toBe('Bob');
+    expect(say(0)).toBe('0');
+    expect(sayCount(1, 'week')).toBe('1 week');
+    expect(sayCount(3, 'week')).toBe('3 weeks');
+    expect(sayCount('4', 'week')).toBe('4 weeks');
+    expect(sayCount(undefined, 'week')).toBe('unknown number of weeks');
+    expect(sayCount(NaN, 'week')).toBe('unknown number of weeks');
+    expect(sayDate(undefined)).toBe('unknown date');
+    expect(sayDate('not a date')).toBe('unknown date');
+    expect(sayDate('2026-11-21')).not.toMatch(/Invalid|undefined/);
+  });
+
+  it('G61 labels never interpolate a raw data field (wrap it in say/sayCount/sayDate)', () => {
+    // a `${a.b}` member access straight into a label could read "undefined"; .length of a state
+    // array and loop indices are fine.
+    const rawFields = (src) => {
+      const out = [];
+      for (const m of src.matchAll(/(?:accessibilityLabel|label)=\{`([^`]*)`\}/g)) {
+        for (const e of m[1].matchAll(/\$\{([^}]*)\}/g)) {
+          const expr = e[1].trim();
+          if (/^[\w$]+(\??\.[\w$]+)+$/.test(expr) && !/\.length$/.test(expr)) out.push(expr);
+        }
+      }
+      return out;
+    };
+    // the check bites: raw fields are caught, wrapped ones and .length are not
+    expect(rawFields('<X accessibilityLabel={`Open ${item.name}, ${item.total_weeks} weeks, ${say(item.role)}, ${list.length}`} />'))
+      .toEqual(['item.name', 'item.total_weeks']);
+    expect(G61_SCREENS.flatMap((f) => rawFields(read(f)).map((e) => `${f}: ${e}`))).toEqual([]);
   });
 });
 

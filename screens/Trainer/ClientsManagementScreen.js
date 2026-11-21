@@ -26,6 +26,7 @@ import {
   updateTrainerClient,
   deleteTrainerClient,
 } from '../../api';
+import { say } from '../../utils/a11yText';  // G61
 
 export default function ClientsManagementScreen() {
   const [active, setActive] = useState([]);
@@ -129,15 +130,15 @@ export default function ClientsManagementScreen() {
       </View>
       <View style={styles.rowActions}>
         {item.status === 'active' ? (
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Archive ${item.username}`} onPress={() => handleArchive(item)} style={styles.btnGhost}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Archive ${say(item.username)}`} onPress={() => handleArchive(item)} style={styles.btnGhost}>
             <Text style={styles.btnText}>Archive</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Restore ${item.username}`} onPress={() => handleUnarchive(item)} style={styles.btnGhost}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Restore ${say(item.username)}`} onPress={() => handleUnarchive(item)} style={styles.btnGhost}>
             <Text style={styles.btnText}>Restore</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove ${item.username}`} onPress={() => handleDelete(item)} style={styles.btnDanger}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove ${say(item.username)}`} onPress={() => handleDelete(item)} style={styles.btnDanger}>
           <Text style={styles.btnDangerText}>✕</Text>
         </TouchableOpacity>
       </View>

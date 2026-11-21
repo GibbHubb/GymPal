@@ -17,6 +17,7 @@ import CustomButton from '../../components/CustomButton';
 import CustomHeader from '../../components/CustomHeader';
 import GlassCard from '../../components/GlassCard';
 import { ActivityIndicator } from 'react-native';
+import { say } from '../../utils/a11yText';  // G61
 
 const MemoizedInput = memo(({ value, onChange, placeholder, style, label }) => (
   <TextInput
@@ -303,7 +304,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
                 {exerciseOptions.map((exercise, index) => (
                   <TouchableOpacity
                     accessibilityRole="button"
-                    accessibilityLabel={`Choose ${exercise.name}`}
+                    accessibilityLabel={`Choose ${say(exercise.name)}`}
                     key={exercise.exercise_id || index}
                     style={styles.dropdownItem}
                     onPress={() => handleExerciseSelect(exercise)}
@@ -337,7 +338,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
               {participants.map((participant, index) => (
                 <View key={index} style={styles.headerCellContainer}>
                   <Text style={styles.headerCell}>{participant.participant_name}</Text>
-                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove participant ${participant.participant_name}`} onPress={() => handleRemoveParticipant(participant.user_id)} style={styles.removeIcon}>
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove participant ${say(participant.participant_name)}`} onPress={() => handleRemoveParticipant(participant.user_id)} style={styles.removeIcon}>
                     <Text style={{ color: Theme.colors.error, fontSize: 12 }}>✕</Text>
                   </TouchableOpacity>
                 </View>
@@ -372,7 +373,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
                             value={weightVal}
                             onChange={(text) => handleUpdateValue(participant.user_id, exercise.exercise_id, 'weights', text)}
                             placeholder="0"
-                            label={`${participant.participant_name}, ${exercise.exercise_name}, weight`}
+                            label={`${say(participant.participant_name)}, ${say(exercise.exercise_name)}, weight`}
                           />
                         </View>
                         <View style={styles.dataBox}>
@@ -381,7 +382,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
                             value={repVal}
                             onChange={(text) => handleUpdateValue(participant.user_id, exercise.exercise_id, 'reps', text)}
                             placeholder="0"
-                            label={`${participant.participant_name}, ${exercise.exercise_name}, reps`}
+                            label={`${say(participant.participant_name)}, ${say(exercise.exercise_name)}, reps`}
                           />
                         </View>
                       </View>
