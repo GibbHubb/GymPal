@@ -99,7 +99,7 @@ export default function WorkoutsMenu({ navigation }) {
     <View style={styles.container}>
       {/* GymPal Logo */}
       {/* Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>← Back</Text>
       </TouchableOpacity>
 
@@ -107,6 +107,7 @@ export default function WorkoutsMenu({ navigation }) {
 
       {/* Search Bar */}
       <TextInput
+        accessibilityLabel="Search workouts"
         style={styles.searchInput}
         placeholder="🔍 Search workouts"
         placeholderTextColor="#555"
@@ -124,6 +125,8 @@ export default function WorkoutsMenu({ navigation }) {
         keyExtractor={(item, index) => item?.group_workout_id?.toString() || index.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`Edit workout ${item.name}, ${new Date(item.date).toLocaleDateString()}`}
             style={styles.workoutItem}
             onPress={() => handleNavigateToEditWorkout(item.group_workout_id)}
           >
@@ -137,13 +140,13 @@ export default function WorkoutsMenu({ navigation }) {
 
       {/* Workout Category Buttons */}
       <View style={styles.topButtonContainer}>
-        <TouchableOpacity style={styles.mainButton} onPress={() => handleFetchWorkouts(fetchYourWorkouts, 'Your Workouts')}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Show your workouts" style={styles.mainButton} onPress={() => handleFetchWorkouts(fetchYourWorkouts, 'Your Workouts')}>
           <Text style={styles.mainButtonText}>Your Workouts</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.mainButton} onPress={() => handleFetchWorkouts(fetchLast10Workouts, 'Last 10 Workouts')}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Show the last 10 workouts" style={styles.mainButton} onPress={() => handleFetchWorkouts(fetchLast10Workouts, 'Last 10 Workouts')}>
           <Text style={styles.mainButtonText}>Last 10</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.mainButton} onPress={() => handleFetchWorkouts(fetchMostUsedWorkouts, 'Most Used Workouts')}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Show the most used workouts" style={styles.mainButton} onPress={() => handleFetchWorkouts(fetchMostUsedWorkouts, 'Most Used Workouts')}>
           <Text style={styles.mainButtonText}>Most Used</Text>
         </TouchableOpacity>
       </View>
@@ -151,14 +154,14 @@ export default function WorkoutsMenu({ navigation }) {
       {/* Level Buttons */}
       <View style={styles.levelContainer}>
         {['Novice', 'Beginner', 'Intermediate', 'Advanced'].map((level) => (
-          <TouchableOpacity key={level} style={styles.subButton} onPress={() => handleFetchWorkouts(() => fetchWorkoutsByLevel(level), level)}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Show ${level} workouts`} key={level} style={styles.subButton} onPress={() => handleFetchWorkouts(() => fetchWorkoutsByLevel(level), level)}>
             <Text style={styles.subButtonText}>{level}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {/* Create Workout Button */}
-      <TouchableOpacity style={styles.createWorkoutButton} onPress={handleNavigateToCreateWorkout}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Create a workout" style={styles.createWorkoutButton} onPress={handleNavigateToCreateWorkout}>
         <Text style={styles.createWorkoutButtonText}>➕ Create a Workout</Text>
       </TouchableOpacity>
     </View>

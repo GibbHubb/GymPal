@@ -485,7 +485,7 @@ export default function TrainerScreen({ route, navigation }) {
         <View style={styles.topLogoRow}>
           {/* G51 — was require("../../assets/GymPal.png"), a file never committed; a wordmark stands in. */}
           <Text style={styles.logo}>GymPal</Text>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Text style={styles.backBtnText}>← Back</Text>
           </TouchableOpacity>
         </View>
@@ -494,6 +494,7 @@ export default function TrainerScreen({ route, navigation }) {
         <View style={styles.sessionContainer}>
           <Text style={styles.sessionLabel}>Session:</Text>
           <TextInput
+            accessibilityLabel="Session name"
             style={styles.sessionInput}
             value={sessionName}
             onChangeText={setSessionName}
@@ -501,6 +502,9 @@ export default function TrainerScreen({ route, navigation }) {
             placeholderTextColor="#888"
           />
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={sessionActive ? 'Session is live' : 'Go live'}
+            accessibilityState={{ checked: sessionActive }}
             style={[
               styles.sessionStatusButton,
               sessionActive ? styles.sessionActiveButton : styles.sessionInactiveButton,
@@ -515,13 +519,14 @@ export default function TrainerScreen({ route, navigation }) {
 
         <View style={styles.inputContainer}>
           <TextInput
+            accessibilityLabel="Add participant"
             style={styles.input}
             placeholder="Add Participant..."
             placeholderTextColor="#888"
             value={newParticipant}
             onChangeText={setNewParticipant}
           />
-          <TouchableOpacity style={styles.addButton} onPress={handleAddParticipant}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add participant" style={styles.addButton} onPress={handleAddParticipant}>
             <Text style={styles.buttonText}>Add</Text>
           </TouchableOpacity>
         </View>
@@ -575,6 +580,7 @@ export default function TrainerScreen({ route, navigation }) {
                       >
                         <View style={styles.dataBox}>
                           <TextInput
+                            accessibilityLabel={`${participant.participant_name || 'Participant'}, ${exercise.exercise_name}, weight`}
                             style={styles.dataText}
                             value={String(participant.weights?.[exercise.exercise_id] || "")}
                             onChangeText={(text) =>
@@ -588,6 +594,7 @@ export default function TrainerScreen({ route, navigation }) {
                         </View>
                         <View style={styles.dataBox}>
                           <TextInput
+                            accessibilityLabel={`${participant.participant_name || 'Participant'}, ${exercise.exercise_name}, reps`}
                             style={styles.dataText}
                             value={String(participant.reps?.[exercise.exercise_id] || "")}
                             onChangeText={(text) =>
@@ -613,39 +620,41 @@ export default function TrainerScreen({ route, navigation }) {
           <View style={styles.timerContainer}>
             <Text style={styles.timerText}>{formatTime(timer)}</Text>
             <View style={styles.timerAdjustRow}>
-              <TouchableOpacity onPress={() => handleAddTime(-60)} style={styles.timeAdjustBtn}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Subtract one minute" onPress={() => handleAddTime(-60)} style={styles.timeAdjustBtn}>
                 <Text style={styles.timeAdjustText}>-1m</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleAddTime(60)} style={styles.timeAdjustBtn}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add one minute" onPress={() => handleAddTime(60)} style={styles.timeAdjustBtn}>
                 <Text style={styles.timeAdjustText}>+1m</Text>
               </TouchableOpacity>
             </View>
           </View>
           <View style={styles.timerControls}>
             {!timerRunning ? (
-              <TouchableOpacity style={styles.startButton} onPress={handleStartTimer}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Start timer" style={styles.startButton} onPress={handleStartTimer}>
                 <Text style={styles.startButtonText}>Start</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={styles.pauseButton} onPress={handlePauseTimer}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Pause timer" style={styles.pauseButton} onPress={handlePauseTimer}>
                 <Text style={styles.pauseButtonText}>Pause</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.resetButton} onPress={handleResetTimer}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Reset timer" style={styles.resetButton} onPress={handleResetTimer}>
               <Text style={styles.resetButtonText}>Reset</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.nextButton} onPress={handleNextExercise}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Next exercise" style={styles.nextButton} onPress={handleNextExercise}>
             <Text style={styles.nextButtonText}>Next</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.bottomControls}>
-          <TouchableOpacity style={styles.debugToggle} onPress={() => setShowDebug(!showDebug)}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={showDebug ? 'Hide debug log' : 'Show debug log'} style={styles.debugToggle} onPress={() => setShowDebug(!showDebug)}>
             <Text style={styles.debugToggleText}>🐛</Text>
           </TouchableOpacity>
           
           <CustomButton 
+            accessibilityRole="button"
+            accessibilityLabel={isFinishing ? 'Saving workout' : 'Finish workout'}
             title={isFinishing ? "Saving..." : "Finish Workout"} 
             onPress={handleFinishWorkout} 
             disabled={isFinishing}
@@ -658,6 +667,7 @@ export default function TrainerScreen({ route, navigation }) {
           <Text style={styles.liveSessionTitle}>📡 Client Live Session</Text>
           <View style={styles.liveSessionRow}>
             <TextInput
+              accessibilityLabel="Client user ID"
               style={styles.liveSessionInput}
               placeholder="Client user ID..."
               placeholderTextColor="#888"
@@ -666,6 +676,8 @@ export default function TrainerScreen({ route, navigation }) {
               editable={!clientSessionActive}
             />
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={clientSessionActive ? 'End client live session' : 'Start client live session'}
               style={[styles.liveSessionBtn, clientSessionActive ? styles.liveSessionBtnEnd : styles.liveSessionBtnStart]}
               onPress={clientSessionActive ? handleEndClientSession : handleStartClientSession}
             >
@@ -675,13 +687,14 @@ export default function TrainerScreen({ route, navigation }) {
           {clientSessionActive && (
             <View style={styles.liveSessionRow}>
               <TextInput
+                accessibilityLabel="Exercise name to push"
                 style={styles.liveSessionInput}
                 placeholder="Exercise name to push..."
                 placeholderTextColor="#888"
                 value={pushExerciseName}
                 onChangeText={setPushExerciseName}
               />
-              <TouchableOpacity style={styles.liveSessionBtnPush} onPress={handlePushExercise}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Push exercise to client" style={styles.liveSessionBtnPush} onPress={handlePushExercise}>
                 <Text style={styles.liveSessionBtnText}>Push</Text>
               </TouchableOpacity>
             </View>
@@ -690,7 +703,7 @@ export default function TrainerScreen({ route, navigation }) {
 
         {/* G7 — Workout Templates */}
         <View style={styles.liveSessionPanel}>
-          <TouchableOpacity onPress={() => setShowTemplates(!showTemplates)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Templates" accessibilityState={{ expanded: showTemplates }} onPress={() => setShowTemplates(!showTemplates)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.liveSessionTitle}>📋 Templates</Text>
             <Text style={{ color: Theme.colors.primary, fontSize: 12 }}>{showTemplates ? '▲' : '▼'}</Text>
           </TouchableOpacity>
@@ -700,6 +713,8 @@ export default function TrainerScreen({ route, navigation }) {
               {/* Save current workout as template */}
               {!showSaveModal ? (
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Save as template"
                   style={[styles.liveSessionBtn, styles.liveSessionBtnStart, { marginBottom: 8, alignSelf: 'flex-start' }]}
                   onPress={() => setShowSaveModal(true)}
                 >
@@ -708,16 +723,17 @@ export default function TrainerScreen({ route, navigation }) {
               ) : (
                 <View style={[styles.liveSessionRow, { marginBottom: 8 }]}>
                   <TextInput
+                    accessibilityLabel="Template name"
                     style={styles.liveSessionInput}
                     placeholder="Template name..."
                     placeholderTextColor="#888"
                     value={templateName}
                     onChangeText={setTemplateName}
                   />
-                  <TouchableOpacity style={[styles.liveSessionBtn, styles.liveSessionBtnStart]} onPress={handleSaveTemplate}>
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel="Save template" style={[styles.liveSessionBtn, styles.liveSessionBtnStart]} onPress={handleSaveTemplate}>
                     <Text style={styles.liveSessionBtnText}>Save</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.liveSessionBtn, styles.liveSessionBtnEnd]} onPress={() => setShowSaveModal(false)}>
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cancel saving template" style={[styles.liveSessionBtn, styles.liveSessionBtnEnd]} onPress={() => setShowSaveModal(false)}>
                     <Text style={styles.liveSessionBtnText}>✕</Text>
                   </TouchableOpacity>
                 </View>
@@ -729,11 +745,11 @@ export default function TrainerScreen({ route, navigation }) {
               ) : (
                 templates.map((t) => (
                   <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: Theme.colors.glassBorder }}>
-                    <TouchableOpacity style={{ flex: 1 }} onPress={() => handleLoadTemplate(t)}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Load template ${t.name}, ${t.exercises.length} exercises`} style={{ flex: 1 }} onPress={() => handleLoadTemplate(t)}>
                       <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{t.name}</Text>
                       <Text style={{ color: '#888', fontSize: 11 }}>{t.exercises.length} exercises</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteTemplate(t.id)}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete template ${t.name}`} onPress={() => handleDeleteTemplate(t.id)}>
                       <Text style={{ color: Theme.colors.error, fontSize: 16, paddingHorizontal: 8 }}>✕</Text>
                     </TouchableOpacity>
                   </View>

@@ -36,6 +36,11 @@ import { filterExercises, exerciseName, exerciseKey } from '../../utils/exercise
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { Theme } from '../../constants/Theme';  // G53 — one gold, named text-on-fill colours
 
+// G61 — the PB/PR "Dismiss" pill is drawn 28pt tall (styles.pbBannerDismiss) and this slop takes
+// its touch area to 44pt, so the 44pt target no longer turns the pill into a tall dark bar.
+const PB_DISMISS_HEIGHT = 28;
+const PB_DISMISS_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
+
 
 
 const TrainingScreen = ({ navigation, route }) => {
@@ -431,6 +436,7 @@ const finishWorkout = async () => {
           <TouchableOpacity
             onPress={() => setPersonalBests([])}
             style={styles.pbBannerDismiss}
+            hitSlop={PB_DISMISS_HIT_SLOP}
             accessibilityRole="button"
             accessibilityLabel="Dismiss personal best banner"
           >
@@ -452,6 +458,7 @@ const finishWorkout = async () => {
           <TouchableOpacity
             onPress={() => setExercisePRs([])}
             style={styles.pbBannerDismiss}
+            hitSlop={PB_DISMISS_HIT_SLOP}
             accessibilityRole="button"
             accessibilityLabel="Dismiss personal records banner"
           >
@@ -711,7 +718,8 @@ const styles = StyleSheet.create({
   },
   pbBannerTitle: { color: Theme.colors.onPrimary, fontWeight: '900', fontSize: 16, marginBottom: 6, letterSpacing: 1 },
   pbBannerItem: { color: Theme.colors.onPrimary, fontWeight: '600', fontSize: 13, marginBottom: 2, textAlign: 'center' },
-  pbBannerDismiss: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, minHeight: 44, justifyContent: 'center', backgroundColor: Theme.colors.onPrimary, borderRadius: 6 }, // G53 — was ~22pt tall
+  // G61 — compact pill (G53's minHeight 44 made it a tall bar); PB_DISMISS_HIT_SLOP makes the target 44pt
+  pbBannerDismiss: { marginTop: 10, paddingHorizontal: 14, height: PB_DISMISS_HEIGHT, justifyContent: 'center', alignSelf: 'center', backgroundColor: Theme.colors.onPrimary, borderRadius: 6 },
   pbBannerDismissText: { color: Theme.colors.primary, fontWeight: '700', fontSize: 12 },
   // G34 — PR banner (distinct blue accent so it reads apart from the G9 gold PB banner)
   prBanner: {

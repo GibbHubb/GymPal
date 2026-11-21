@@ -157,6 +157,7 @@ export default function CreateWorkout({ navigation }) {
       <View style={styles.container}>
 
         <TextInput 
+          accessibilityLabel="Workout name"
           style={styles.input} 
           placeholder="Workout Name" 
           placeholderTextColor="#888"
@@ -169,6 +170,9 @@ export default function CreateWorkout({ navigation }) {
           <View style={styles.difficultyOptions}>
             {['Novice', 'Beginner', 'Intermediate', 'Advanced'].map((level) => (
               <TouchableOpacity
+                accessibilityRole="radio"
+                accessibilityLabel={`Difficulty: ${level}`}
+                accessibilityState={{ checked: difficulty === level }}
                 key={level}
                 style={[styles.difficultyButton, difficulty === level && styles.difficultySelected]}
                 onPress={() => setDifficulty(level)}
@@ -185,7 +189,7 @@ export default function CreateWorkout({ navigation }) {
           <GlassCard key={index} style={styles.exerciseCard}>
             <View style={styles.exerciseHeader}>
               <Text style={styles.exerciseLabel}>Exercise {index + 1}</Text>
-              <TouchableOpacity onPress={() => removeExercise(index)}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove exercise ${index + 1}`} onPress={() => removeExercise(index)}>
                 <Text style={{ color: Theme.colors.error, fontWeight: 'bold' }}>Remove</Text>
               </TouchableOpacity>
             </View>
@@ -194,6 +198,10 @@ export default function CreateWorkout({ navigation }) {
             {index > 0 && (
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 <TouchableOpacity
+                  accessibilityRole="togglebutton"
+                  accessibilityLabel={`Superset exercise ${index + 1} with the previous one`}
+                  accessibilityHint="Long press to toggle grouping with the previous exercise"
+                  accessibilityState={{ checked: exercise.group_kind === 'superset' && !!exercise.group_with_previous }}
                   onPress={() => handleExerciseChange(index, 'group_kind',
                     exercise.group_kind === 'superset' ? null : 'superset')}
                   onLongPress={() => handleExerciseChange(index, 'group_with_previous', !exercise.group_with_previous)}
@@ -208,6 +216,9 @@ export default function CreateWorkout({ navigation }) {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
+                  accessibilityRole="togglebutton"
+                  accessibilityLabel={`Drop set exercise ${index + 1} from the previous one`}
+                  accessibilityState={{ checked: exercise.group_kind === 'dropset' && !!exercise.group_with_previous }}
                   onPress={() => {
                     handleExerciseChange(index, 'group_kind',
                       exercise.group_kind === 'dropset' ? null : 'dropset');
@@ -228,6 +239,7 @@ export default function CreateWorkout({ navigation }) {
             )}
 
             <TextInput 
+              accessibilityLabel={`Search exercise ${index + 1}`}
               style={styles.input} 
               placeholder="Search Exercise..." 
               placeholderTextColor="#888"
@@ -239,6 +251,8 @@ export default function CreateWorkout({ navigation }) {
               <View style={styles.dropdown}>
                 {searchResults[index].map((option) => (
                   <TouchableOpacity 
+                    accessibilityRole="button"
+                    accessibilityLabel={`Choose ${option.name}`}
                     key={option.exercise_id} 
                     style={styles.dropdownItem} 
                     onPress={() => handleSelectExercise(index, option)}
@@ -253,6 +267,7 @@ export default function CreateWorkout({ navigation }) {
               <View style={styles.statBox}>
                 <Text style={styles.statLabel}>Reps</Text>
                 <TextInput 
+                  accessibilityLabel={`Rep range for exercise ${index + 1}`}
                   style={styles.statInput} 
                   placeholder="10-12" 
                   placeholderTextColor="#555"
@@ -263,6 +278,7 @@ export default function CreateWorkout({ navigation }) {
               <View style={styles.statBox}>
                 <Text style={styles.statLabel}>Sets</Text>
                 <TextInput 
+                  accessibilityLabel={`Sets for exercise ${index + 1}`}
                   style={styles.statInput} 
                   placeholder="3" 
                   placeholderTextColor="#555"
@@ -276,6 +292,8 @@ export default function CreateWorkout({ navigation }) {
         ))}
 
         <CustomButton 
+          accessibilityRole="button"
+          accessibilityLabel="Add exercise"
           title="+ Add Exercise" 
           onPress={addExercise} 
           style={styles.addBtn}
@@ -283,6 +301,8 @@ export default function CreateWorkout({ navigation }) {
         />
 
         <CustomButton 
+          accessibilityRole="button"
+          accessibilityLabel={isSaving ? 'Saving workout' : 'Save workout'}
           title={isSaving ? "Saving..." : "Save Workout"} 
           onPress={handleSubmit} 
           disabled={isSaving}

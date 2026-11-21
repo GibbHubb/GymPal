@@ -153,6 +153,8 @@ export default function ProgramBuilderScreen() {
                                 const cell = cellMap[`${w}-${dow}`];
                                 return (
                                     <TouchableOpacity
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Week ${w}, ${label}: ${cell ? cell.template_name : 'rest day'}. Change template`}
                                         key={w}
                                         style={[styles.cell, cell ? styles.cellFilled : null]}
                                         onPress={() => setPickerCell({ week: w, dow })}
@@ -169,18 +171,20 @@ export default function ProgramBuilderScreen() {
             </ScrollView>
 
             <View style={styles.actionBar}>
-                <CustomButton title="👥 Assign to client" onPress={() => setShowAssign(true)} />
+                <CustomButton accessibilityRole="button" accessibilityLabel="Assign to client" title="👥 Assign to client" onPress={() => setShowAssign(true)} />
             </View>
 
             {/* Template picker */}
             <Modal visible={!!pickerCell} animationType="fade" transparent onRequestClose={() => setPickerCell(null)}>
-                <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setPickerCell(null)}>
-                    <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
+                <TouchableOpacity accessible={false} style={styles.modalBackdrop} activeOpacity={1} onPress={() => setPickerCell(null)}>
+                    <TouchableOpacity accessible={false} activeOpacity={1} style={styles.modalCard}>
                         <Text style={styles.modalTitle}>
                             Pick a template — Week {pickerCell?.week}, {DOW_LABELS[pickerCell?.dow ?? 0]}
                         </Text>
                         <ScrollView style={{ maxHeight: 320 }}>
                             <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Clear, make it a rest day"
                                 style={styles.modalRow}
                                 onPress={() => updateCell(pickerCell.week, pickerCell.dow, null)}
                             >
@@ -191,6 +195,8 @@ export default function ProgramBuilderScreen() {
                             )}
                             {templates.map((t) => (
                                 <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Use template ${t.name}`}
                                     key={t.id}
                                     style={styles.modalRow}
                                     onPress={() => updateCell(pickerCell.week, pickerCell.dow, t.id)}
@@ -205,11 +211,12 @@ export default function ProgramBuilderScreen() {
 
             {/* Assign modal */}
             <Modal visible={showAssign} animationType="fade" transparent onRequestClose={() => setShowAssign(false)}>
-                <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAssign(false)}>
-                    <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
+                <TouchableOpacity accessible={false} style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAssign(false)}>
+                    <TouchableOpacity accessible={false} activeOpacity={1} style={styles.modalCard}>
                         <Text style={styles.modalTitle}>Assign program</Text>
                         <Text style={styles.label}>Client user_id</Text>
                         <TextInput
+                            accessibilityLabel="Client user ID"
                             keyboardType="number-pad"
                             placeholder="123"
                             placeholderTextColor="rgba(255,255,255,0.4)"
@@ -219,6 +226,7 @@ export default function ProgramBuilderScreen() {
                         />
                         <Text style={styles.label}>Start date (YYYY-MM-DD)</Text>
                         <TextInput
+                            accessibilityLabel="Start date, year month day"
                             placeholder="2026-05-12"
                             placeholderTextColor="rgba(255,255,255,0.4)"
                             style={styles.input}
@@ -227,6 +235,8 @@ export default function ProgramBuilderScreen() {
                             autoCapitalize="none"
                         />
                         <CustomButton
+                            accessibilityRole="button"
+                            accessibilityLabel={assigning ? 'Assigning program' : 'Assign program'}
                             title={assigning ? 'Assigning…' : 'Assign'}
                             onPress={handleAssign}
                             style={{ marginTop: Theme.spacing.s }}

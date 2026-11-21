@@ -89,6 +89,8 @@ const IntakeScreen = ({ navigation }) => {
     <ScreenWrapper scrollable>
       <View style={styles.topContainer}>
         <CustomButton
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
           title="← Back"
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -121,6 +123,7 @@ const IntakeScreen = ({ navigation }) => {
           <View key={key} style={styles.inputContainer}>
             <Text style={styles.label}>{description}</Text>
             <CustomInput
+              accessibilityLabel={description}
               placeholder={key.replace('_', ' ')}
               value={String(intakeData[key] || "")}
               onChangeText={(value) => handleChange(key, value)}
@@ -138,6 +141,8 @@ const IntakeScreen = ({ navigation }) => {
 
         {!submitted && (
           <CustomButton 
+            accessibilityRole="button"
+            accessibilityLabel="Submit intake"
             title="Submit Intake"
             onPress={submitIntake}
             style={styles.submitBtn}

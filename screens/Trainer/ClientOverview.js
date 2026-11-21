@@ -111,13 +111,14 @@ export default function ClientOverview({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>←</Text>
       </TouchableOpacity>
 
       <Text style={styles.header}>Client & Trainer Overview</Text>
 
       <TextInput
+        accessibilityLabel="Search users"
         style={styles.searchInput}
         placeholder="Search users..."
         placeholderTextColor="#555"
@@ -125,7 +126,7 @@ export default function ClientOverview({ navigation }) {
         onChangeText={handleSearch}
       />
 
-      <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add client" style={styles.addButton} onPress={() => setModalVisible(true)}>
         <Text style={styles.addButtonText}>+ Add Client</Text>
       </TouchableOpacity>
 
@@ -141,6 +142,8 @@ export default function ClientOverview({ navigation }) {
     console.log("📢 Rendering user:", item);
     return (
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`Open profile of ${item.username}, ${item.role}`}
         style={styles.userCard}
         onPress={() => navigation.navigate('ProfileScreen', { userId: item.user_id })}
       >
@@ -169,6 +172,7 @@ export default function ClientOverview({ navigation }) {
           <View style={styles.modalContent}>
             <Text style={styles.modalHeader}>Add New Client</Text>
             <TextInput
+              accessibilityLabel="Client's name"
               style={styles.input}
               placeholder="Enter client's name"
               value={newClientName}
@@ -176,12 +180,18 @@ export default function ClientOverview({ navigation }) {
             />
             <Text style={styles.roleLabel}>Select Role:</Text>
             <TouchableOpacity
+              accessibilityRole="radio"
+              accessibilityLabel="Role: client"
+              accessibilityState={{ checked: selectedRole === 'client' }}
               style={[styles.roleButton, selectedRole === 'client' && styles.roleSelected]}
               onPress={() => setSelectedRole('client')}
             >
               <Text style={styles.roleText}>Client</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              accessibilityRole="radio"
+              accessibilityLabel="Role: trainer"
+              accessibilityState={{ checked: selectedRole === 'trainer' }}
               style={[styles.roleButton, selectedRole === 'trainer' && styles.roleSelected]}
               onPress={() => setSelectedRole('trainer')}
             >
@@ -189,10 +199,10 @@ export default function ClientOverview({ navigation }) {
             </TouchableOpacity>
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cancel" style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleAddClient}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add the client" style={styles.saveButton} onPress={handleAddClient}>
                 <Text style={styles.saveText}>Add</Text>
               </TouchableOpacity>
             </View>

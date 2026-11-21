@@ -1,4 +1,5 @@
-// G53 — lint-style screen-reader check for the five core screens.
+// G53 — lint-style screen-reader check for the five core screens (G61: and every other routed
+// screen, see G61_SCREENS).
 //
 // Counts, per file, the interactive JSX elements and how many of them lack an
 // accessibilityLabel / accessibilityRole:
@@ -25,7 +26,29 @@ export const CORE_SCREENS = [
   'screens/Client/ProgressScreen.js',
 ];
 
-const TAPPABLE = ['TouchableOpacity', 'TouchableHighlight', 'TouchableWithoutFeedback', 'Pressable', 'CustomButton'];
+// G61 — every other routed screen, plus the heatmap cell (a tappable component with no label prop
+// passed through from outside).
+export const G61_SCREENS = [
+  'screens/Client/LeaderboardScreen.js',
+  'screens/Client/LifestyleScreen.js',
+  'screens/Client/IntakeScreen.js',
+  'screens/Trainer/TrainerHome.js',
+  'screens/Trainer/ClientOverview.js',
+  'screens/Trainer/ClientsManagementScreen.js',
+  'screens/Trainer/CreateWorkout.js',
+  'screens/Trainer/EditWorkout.js',
+  'screens/Trainer/ProfileScreen.js',
+  'screens/Trainer/ProgramBuilderScreen.js',
+  'screens/Trainer/ProgramsListScreen.js',
+  'screens/Trainer/TrainerScreen.js',
+  'screens/Trainer/TVScreen.js',
+  'screens/Trainer/WorkoutsMenu.js',
+  'components/VolumeHeatmapCell.js',
+];
+
+export const AUDITED = [...CORE_SCREENS, ...G61_SCREENS];
+
+const TAPPABLE =['TouchableOpacity', 'TouchableHighlight', 'TouchableWithoutFeedback', 'Pressable', 'CustomButton'];
 const FIELD = ['TextInput', 'CustomInput', 'Picker'];
 
 /** The attribute text of a JSX tag starting at `from`, honouring `{...}` (which may hold `=>`). */
@@ -53,7 +76,10 @@ export function scanSource(src) {
     const tag = m[1];
     const attrs = readAttrs(src, m.index + m[0].length);
     const kind = TAPPABLE.includes(tag) ? 'tappable' : 'field';
-    const need = kind === 'tappable' ? ['accessibilityLabel', 'accessibilityRole'] : ['accessibilityLabel'];
+    // G61 — `accessible={false}` is a deliberate opt-out (a modal backdrop or a press-swallowing
+    // card that would otherwise hide its children from the screen reader as one focus node).
+    const optedOut = /(^|\s)accessible=\{false\}/.test(attrs);
+    const need = optedOut ? [] : kind === 'tappable' ? ['accessibilityLabel', 'accessibilityRole'] : ['accessibilityLabel'];
     const line = src.slice(0, m.index).split('\n').length;
     out.push({ tag, line, kind, missing: need.filter((p) => !hasProp(attrs, p)) });
   }
@@ -86,7 +112,7 @@ export function countA11yProps(dirs = ['screens', 'components']) {
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
-  const rows = auditFiles();
+  const rows = auditFiles(AUDITED);
   let bad = 0;
   console.log('| File | Interactive | Unlabelled |');
   console.log('|---|---|---|');
@@ -96,6 +122,6 @@ if (isMain) {
     for (const u of r.unlabelled) console.log(`|  line ${u.line} <${u.tag}> | | missing ${u.missing.join(', ')} |`);
   }
   console.log(`\naccessibility props in screens/ + components/: ${countA11yProps()}`);
-  console.log(`unlabelled interactive elements on the core screens: ${bad}`);
+  console.log(`unlabelled interactive elements on the ${rows.length} audited files: ${bad}`);
   process.exit(bad ? 1 : 0);
 }

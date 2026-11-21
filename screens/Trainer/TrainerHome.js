@@ -20,7 +20,7 @@ export default function TrainerHome({ navigation }) {
   return (
     <ScreenWrapper scrollable={true}>
       <Animated.View style={styles.headerContainer} entering={FadeInDown.duration(600)}>
-         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Log out" onPress={handleLogout} style={styles.logoutBtn}>
             <Text style={styles.logoutText}>Logout</Text>
          </TouchableOpacity>
       </Animated.View>
@@ -36,31 +36,43 @@ export default function TrainerHome({ navigation }) {
             
             <View style={styles.buttonContainer}>
               <CustomButton
+                accessibilityRole="button"
+                accessibilityLabel="Workout overview"
                 title="🏋️‍♂️ Workout Overview"
                 onPress={() => navigation.navigate('WorkoutsMenu')}
                 style={styles.actionBtn}
               />
               <CustomButton
+                accessibilityRole="button"
+                accessibilityLabel="Client dashboard"
                 title="📊 Client Dashboard"
                 onPress={() => navigation.navigate('TrainerDashboard')}
                 style={styles.actionBtn}
               />
               <CustomButton
+                accessibilityRole="button"
+                accessibilityLabel="Client overview"
                 title="👥 Client Overview"
                 onPress={() => navigation.navigate('ClientOverview')}
                 style={styles.actionBtn}
               />
               <CustomButton
+                accessibilityRole="button"
+                accessibilityLabel="Manage clients"
                 title="🤝 Manage Clients"
                 onPress={() => navigation.navigate('ClientsManagement')}
                 style={styles.actionBtn}
               />
               <CustomButton
+                accessibilityRole="button"
+                accessibilityLabel="Programs"
                 title="📅 Programs"
                 onPress={() => navigation.navigate('ProgramsList')}
                 style={styles.actionBtn}
               />
               <CustomButton
+                accessibilityRole="button"
+                accessibilityLabel="Enter streaming mode"
                 title="📺 Enter Streaming Mode"
                 onPress={() => navigation.navigate('TVScreen')}
                 style={styles.actionBtn}

@@ -56,6 +56,8 @@ export default function LeaderboardScreen() {
               : 'You are NOT visible on the leaderboard. Opt in to appear and to see other opted-in clients of your trainer.'}
           </Text>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={optedIn ? 'Opt out of the leaderboard' : 'Opt in to the leaderboard'}
             onPress={toggleOptIn}
             style={{
               backgroundColor: optedIn ? Theme.colors.error : Theme.colors.primary,

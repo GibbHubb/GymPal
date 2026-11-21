@@ -24,6 +24,7 @@ function VolumeHeatmapCell({ intensity, future, onPress, ariaLabel }) {
     return (
         <TouchableOpacity
             onPress={onPress}
+            accessibilityRole="button" // G61 — announces as tappable (opens the day's sets)
             accessibilityLabel={ariaLabel}
             style={[styles.cell, { backgroundColor: COLOURS[intensity] }]}
             activeOpacity={0.6}

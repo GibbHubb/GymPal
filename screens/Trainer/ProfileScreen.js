@@ -86,23 +86,23 @@ export default function ProfileScreen({ route, navigation }) {
     <View style={styles.container}>
 
       {/* 🔙 Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>← Back</Text>
       </TouchableOpacity>
 
       <Text style={styles.header}>Edit Client Info</Text>
 
-      <TextInput style={styles.input} placeholder="Client Name" value={name} onChangeText={setName} />
-      <TextInput style={styles.input} placeholder="Age" keyboardType="numeric" value={age} onChangeText={setAge} />
-      <TextInput style={styles.input} placeholder="Email" keyboardType="email-address" value={email} onChangeText={setEmail} />
-      <TextInput style={styles.input} placeholder="Phone Number" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
-      <TextInput style={styles.input} placeholder="Gender" value={gender} onChangeText={setGender} />
-      <TextInput style={styles.input} placeholder="Weight (kg)" keyboardType="numeric" value={weight} onChangeText={setWeight} />
-      <TextInput style={styles.input} placeholder="Height (cm)" keyboardType="numeric" value={height} onChangeText={setHeight} />
-      <TextInput style={styles.input} placeholder="Fitness Goal" value={goal} onChangeText={setGoal} />
-      <TextInput style={styles.input} placeholder="New Password (optional)" secureTextEntry value={password} onChangeText={setPassword} />
+      <TextInput accessibilityLabel="Client name" style={styles.input} placeholder="Client Name" value={name} onChangeText={setName} />
+      <TextInput accessibilityLabel="Age" style={styles.input} placeholder="Age" keyboardType="numeric" value={age} onChangeText={setAge} />
+      <TextInput accessibilityLabel="Email" style={styles.input} placeholder="Email" keyboardType="email-address" value={email} onChangeText={setEmail} />
+      <TextInput accessibilityLabel="Phone number" style={styles.input} placeholder="Phone Number" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+      <TextInput accessibilityLabel="Gender" style={styles.input} placeholder="Gender" value={gender} onChangeText={setGender} />
+      <TextInput accessibilityLabel="Weight in kilograms" style={styles.input} placeholder="Weight (kg)" keyboardType="numeric" value={weight} onChangeText={setWeight} />
+      <TextInput accessibilityLabel="Height in centimetres" style={styles.input} placeholder="Height (cm)" keyboardType="numeric" value={height} onChangeText={setHeight} />
+      <TextInput accessibilityLabel="Fitness goal" style={styles.input} placeholder="Fitness Goal" value={goal} onChangeText={setGoal} />
+      <TextInput accessibilityLabel="New password, optional" style={styles.input} placeholder="New Password (optional)" secureTextEntry value={password} onChangeText={setPassword} />
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Save changes" style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Save Changes</Text>
       </TouchableOpacity>
     </View>

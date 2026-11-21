@@ -90,6 +90,9 @@ const LifestyleScreen = ({ navigation }) => {
             <View style={styles.selectorRow}>
                 {[1, 2, 3].map((num) => (
                     <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`${label} ${num} of 3`}
+                        accessibilityState={{ selected: value == num, disabled: alreadySubmittedToday }}
                         key={num}
                         style={[
                             styles.selectorButton,
@@ -126,6 +129,7 @@ const LifestyleScreen = ({ navigation }) => {
                     {renderSelector("Soreness", soreness, setSoreness)}
 
                     <TextInput
+                        accessibilityLabel="Weight in kilograms"
                         style={styles.input}
                         placeholder="Weight (kg)"
                         placeholderTextColor={Theme.colors.textSecondary}
@@ -135,6 +139,7 @@ const LifestyleScreen = ({ navigation }) => {
                         editable={!alreadySubmittedToday}
                     />
                     <TextInput
+                        accessibilityLabel="Notes to trainer, optional"
                         style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
                         placeholder="Notes to Trainer (Optional)"
                         placeholderTextColor={Theme.colors.textSecondary}
@@ -145,6 +150,8 @@ const LifestyleScreen = ({ navigation }) => {
                     />
 
                     <CustomButton 
+                        accessibilityRole="button"
+                        accessibilityLabel={alreadySubmittedToday ? 'Check-in already submitted today' : 'Submit check-in'}
                         title={alreadySubmittedToday ? 'Already Submitted Today ✅' : 'Submit Check-in'} 
                         onPress={handleSubmitLifestyleData}
                         disabled={alreadySubmittedToday}

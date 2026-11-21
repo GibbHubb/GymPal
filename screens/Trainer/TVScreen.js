@@ -257,7 +257,7 @@ const TVScreen = () => {
               data={availableSessions}
               keyExtractor={(item) => item.sessionId}
               renderItem={({ item }) => (
-                <TouchableOpacity style={styles.sessionItem} onPress={() => joinSession(item)}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Join session ${item.sessionName}, workout ${item.workoutName || 'unknown'}, ${item.participantCount || 0} participants`} style={styles.sessionItem} onPress={() => joinSession(item)}>
                   <Text style={styles.sessionName}>{item.sessionName}</Text>
                   <Text style={styles.sessionDetails}>
                     Workout: {item.workoutName || "Unknown"} | Participants: {item.participantCount || 0}
@@ -270,7 +270,7 @@ const TVScreen = () => {
 
         {/* Action buttons */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity style={styles.refreshButton} onPress={refreshSessions}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh sessions" style={styles.refreshButton} onPress={refreshSessions}>
             <Text style={styles.refreshButtonText}>Refresh Sessions</Text>
           </TouchableOpacity>
         </View>
@@ -297,11 +297,11 @@ const TVScreen = () => {
 
         {/* Action buttons */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity style={styles.refreshButton} onPress={requestWorkoutData}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Request workout data" style={styles.refreshButton} onPress={requestWorkoutData}>
             <Text style={styles.refreshButtonText}>Request Data</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.leaveButton} onPress={leaveSession}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Leave session" style={styles.leaveButton} onPress={leaveSession}>
             <Text style={styles.leaveButtonText}>Leave Session</Text>
           </TouchableOpacity>
         </View>
@@ -323,7 +323,7 @@ const TVScreen = () => {
       {/* Session info bar */}
       <View style={styles.sessionInfoBar}>
         <Text style={styles.sessionInfoName}>{selectedSession.sessionName}</Text>
-        <TouchableOpacity style={styles.leaveSessionButton} onPress={leaveSession}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Leave session" style={styles.leaveSessionButton} onPress={leaveSession}>
           <Text style={styles.leaveSessionText}>Leave</Text>
         </TouchableOpacity>
       </View>
@@ -396,7 +396,7 @@ const TVScreen = () => {
       </ScrollView>
 
       {/* Corner refresh button */}
-      <TouchableOpacity style={styles.cornerRefreshButton} onPress={requestWorkoutData}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh workout data" style={styles.cornerRefreshButton} onPress={requestWorkoutData}>
         <Text style={styles.cornerRefreshText}>↻</Text>
       </TouchableOpacity>
     </View>

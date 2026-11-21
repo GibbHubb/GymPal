@@ -85,6 +85,7 @@ export default function ProgramsListScreen() {
             <View style={styles.createBox}>
                 <Text style={styles.sectionLabel}>New program</Text>
                 <TextInput
+                    accessibilityLabel="New program name"
                     placeholder="e.g. Push/Pull/Legs"
                     placeholderTextColor="rgba(255,255,255,0.4)"
                     style={styles.input}
@@ -94,6 +95,7 @@ export default function ProgramsListScreen() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s }}>
                     <Text style={styles.inlineLabel}>Weeks:</Text>
                     <TextInput
+                        accessibilityLabel="Number of weeks"
                         keyboardType="number-pad"
                         style={[styles.input, { width: 80 }]}
                         value={newWeeks}
@@ -101,6 +103,8 @@ export default function ProgramsListScreen() {
                     />
                 </View>
                 <CustomButton
+                    accessibilityRole="button"
+                    accessibilityLabel={creating ? 'Creating program' : 'Create program and open the builder'}
                     title={creating ? 'Creating…' : 'Create + open builder'}
                     onPress={handleCreate}
                     style={{ marginTop: Theme.spacing.s }}
@@ -119,6 +123,8 @@ export default function ProgramsListScreen() {
                 }
                 renderItem={({ item }) => (
                     <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open program ${item.name}, ${item.total_weeks} week${item.total_weeks === 1 ? '' : 's'}`}
                         style={styles.row}
                         onPress={() => navigation.navigate('ProgramBuilder', { programId: item.id })}
                     >
@@ -126,7 +132,7 @@ export default function ProgramsListScreen() {
                             <Text style={styles.rowTitle}>{item.name}</Text>
                             <Text style={styles.rowMeta}>{item.total_weeks} week{item.total_weeks === 1 ? '' : 's'}</Text>
                         </View>
-                        <TouchableOpacity onPress={() => confirmDelete(item)} hitSlop={12}>
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete program ${item.name}`} onPress={() => confirmDelete(item)} hitSlop={12}>
                             <Text style={styles.del}>✕</Text>
                         </TouchableOpacity>
                     </TouchableOpacity>

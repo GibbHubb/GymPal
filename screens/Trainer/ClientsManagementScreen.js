@@ -129,15 +129,15 @@ export default function ClientsManagementScreen() {
       </View>
       <View style={styles.rowActions}>
         {item.status === 'active' ? (
-          <TouchableOpacity onPress={() => handleArchive(item)} style={styles.btnGhost}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Archive ${item.username}`} onPress={() => handleArchive(item)} style={styles.btnGhost}>
             <Text style={styles.btnText}>Archive</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity onPress={() => handleUnarchive(item)} style={styles.btnGhost}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Restore ${item.username}`} onPress={() => handleUnarchive(item)} style={styles.btnGhost}>
             <Text style={styles.btnText}>Restore</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={() => handleDelete(item)} style={styles.btnDanger}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove ${item.username}`} onPress={() => handleDelete(item)} style={styles.btnDanger}>
           <Text style={styles.btnDangerText}>✕</Text>
         </TouchableOpacity>
       </View>
@@ -150,6 +150,7 @@ export default function ClientsManagementScreen() {
 
       <View style={styles.addBox}>
         <TextInput
+          accessibilityLabel="Client username"
           style={styles.input}
           placeholder="Client username"
           placeholderTextColor={Theme.colors.muted || '#888'}
@@ -159,6 +160,9 @@ export default function ClientsManagementScreen() {
           autoCorrect={false}
         />
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={adding ? 'Adding client' : 'Add client'}
+          accessibilityState={{ disabled: adding || !username.trim(), busy: adding }}
           onPress={handleAdd}
           disabled={adding || !username.trim()}
           style={[styles.btnPrimary, (!username.trim() || adding) && { opacity: 0.5 }]}
@@ -168,10 +172,10 @@ export default function ClientsManagementScreen() {
       </View>
 
       <View style={styles.tabs}>
-        <TouchableOpacity onPress={() => setShowArchived(false)} style={[styles.tab, !showArchived && styles.tabActive]}>
+        <TouchableOpacity accessibilityRole="tab" accessibilityLabel={`Active clients, ${active.length}`} accessibilityState={{ selected: !showArchived }} onPress={() => setShowArchived(false)} style={[styles.tab, !showArchived && styles.tabActive]}>
           <Text style={styles.tabText}>Active ({active.length})</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setShowArchived(true)} style={[styles.tab, showArchived && styles.tabActive]}>
+        <TouchableOpacity accessibilityRole="tab" accessibilityLabel={`Archived clients, ${archived.length}`} accessibilityState={{ selected: showArchived }} onPress={() => setShowArchived(true)} style={[styles.tab, showArchived && styles.tabActive]}>
           <Text style={styles.tabText}>Archived ({archived.length})</Text>
         </TouchableOpacity>
       </View>
