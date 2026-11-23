@@ -172,7 +172,7 @@ export default function WorkoutsMenu({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF', padding: 16 },
   logo: { width: 150, height: 80, resizeMode: 'contain', marginBottom: 20, alignSelf: 'center' },
-  backButton: { alignSelf: 'flex-start', backgroundColor: Theme.colors.primary, padding: 10, borderRadius: 8, marginBottom: 10 },
+  backButton: { alignSelf: 'flex-start', backgroundColor: Theme.colors.primary, padding: 10, borderRadius: 8, marginBottom: 10, minHeight: 44, justifyContent: 'center' }, // G63
   backButtonText: { color: '#1A1A1A', fontWeight: 'bold', fontSize: 16 },
   header: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#3274ba', marginBottom: 16 },
   searchInput: { borderWidth: 1, borderColor: '#8ebce6', borderRadius: 8, padding: 10, backgroundColor: '#f8f8f8', color: '#333', marginBottom: 16 },
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   workoutDate: { fontSize: 14, color: '#333' }, // G62 — #555 on the blue row was 3.7:1
   emptyText: { textAlign: 'center', fontSize: 16, color: '#555', marginVertical: 16 }, // G62 — #777 was 4.48:1
   levelContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  subButton: { backgroundColor: '#3274ba', padding: 12, borderRadius: 8, marginBottom: 8, width: '23%' },
+  subButton: { backgroundColor: '#3274ba', padding: 12, borderRadius: 8, marginBottom: 8, width: '23%', minHeight: 44, justifyContent: 'center' }, // G63
   subButtonText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
   topButtonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 10 },
   mainButton: { backgroundColor: '#3274ba', padding: 16, borderRadius: 8, flex: 1, marginHorizontal: 5 },

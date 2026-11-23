@@ -20,7 +20,7 @@ export default function TrainerHome({ navigation }) {
   return (
     <ScreenWrapper scrollable={true}>
       <Animated.View style={styles.headerContainer} entering={FadeInDown.duration(600)}>
-         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Log out" onPress={handleLogout} style={styles.logoutBtn}>
+         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Log out" onPress={handleLogout} style={styles.logoutBtn} hitSlop={{ top: 6, bottom: 6 }}>
             <Text style={styles.logoutText}>Logout</Text>
          </TouchableOpacity>
       </Animated.View>

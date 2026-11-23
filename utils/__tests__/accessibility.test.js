@@ -9,7 +9,10 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { auditFiles, scanSource, countA11yProps, CORE_SCREENS, G61_SCREENS, AUDITED } from '../../scripts/a11y_audit.mjs';
+import {
+  auditFiles, scanSource, countA11yProps, CORE_SCREENS, G61_SCREENS, AUDITED,
+  targetSizes, optOuts, uncoveredScreens, NOT_SCREENS, MIN_TARGET,
+} from '../../scripts/a11y_audit.mjs';
 import { activateAndLongPress, a11yActionHandler } from '../a11yActions';
 import { say, sayCount, sayDate, UNKNOWN } from '../a11yText';
 import { audit, contrast, styleBlock, PAIRS, loadTheme } from '../../scripts/contrast_audit.mjs';
@@ -169,6 +172,72 @@ describe('G61 — PB/PR Dismiss is a compact pill with a 44pt touch area', () =>
     // both Dismiss touchables (PB and PR banners) use the pill style and carry the slop next to it
     expect(src.match(/style=\{styles\.pbBannerDismiss\}/g)).toHaveLength(2);
     expect(src.match(/style=\{styles\.pbBannerDismiss\}\s*hitSlop=\{PB_DISMISS_HIT_SLOP\}/g)).toHaveLength(2);
+  });
+});
+
+describe('G63 — 44pt targets, opt-outs only on backdrops, every screen audited', () => {
+  const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
+  const sheet = (body) => `\nconst styles = StyleSheet.create({ ${body} });\n`;
+  const one = (jsx, body = '') => targetSizes(`${jsx}${sheet(body)}`)[0];
+
+  it('a bare text button is flagged; hitSlop or min sizes clear it', () => {
+    const remove = `<TouchableOpacity accessibilityRole="button" accessibilityLabel="Remove" onPress={() => go()}><Text style={styles.t}>Remove</Text></TouchableOpacity>`;
+    expect(one(remove, 't: { fontSize: 14 }').small).toBe(true);
+    const slopped = remove.replace('onPress=', 'hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }} onPress=');
+    expect(one(slopped, 't: { fontSize: 14 }').small).toBe(false);
+    const named = `const SLOP = { top: 14, bottom: 14, left: 8, right: 8 };\n${remove.replace('onPress=', 'hitSlop={SLOP} onPress=')}`;
+    expect(one(named, 't: { fontSize: 14 }').small).toBe(false);
+    const sized = remove.replace('onPress=', 'style={styles.b} onPress=');
+    expect(one(sized, 't: { fontSize: 14 }, b: { minHeight: 44, minWidth: 44 }').small).toBe(false);
+  });
+
+  it('a declared height under 44 fails; a conditional style does not rescue it; a ternary takes the smaller', () => {
+    const box = (style) => `<TouchableOpacity style={${style}} onPress={f} />`;
+    expect(one(box('styles.a'), 'a: { height: 30, width: 60 }').small).toBe(true);
+    expect(one(box('[styles.a, big && styles.b]'), 'a: { height: 30, width: 60 }, b: { height: 60 }').small).toBe(true);
+    expect(one(box('on ? styles.b : styles.a'), 'a: { height: 30, width: 60 }, b: { height: 60, width: 60 }').small).toBe(true);
+    expect(one(box('styles.b'), 'b: { height: 60, width: 60, shadowOffset: { width: 0, height: 2 } }').small).toBe(false);
+  });
+
+  it('a side it cannot estimate is reported as unsized, not passed or failed', () => {
+    const r = one(`<TouchableOpacity style={styles.a} onPress={f}><Text style={styles.t}>{name}</Text></TouchableOpacity>`,
+      "a: { padding: 14, width: '48%' }, t: { fontSize: 14 }");
+    expect(r.small).toBe(false);
+    expect(r.unsized).toEqual(['width']);
+    expect(r.h).toBeCloseTo(14 * 2 + 14 * 1.2, 5);
+  });
+
+  it(`every tappable on the audited files reaches ${MIN_TARGET}pt (box + hitSlop)`, () => {
+    const small = AUDITED.flatMap((f) => targetSizes(read(f), f).filter((s) => s.small).map((s) => `${f}:${s.line}`));
+    expect(small).toEqual([]);
+  });
+
+  it('the targets named in G63 reach 44pt by hitSlop or min size, not by a quirk of the estimate', () => {
+    const slopped = (f) => targetSizes(read(f), f).filter((s) => s.slop && (s.slop.v > 0 || s.slop.h > 0));
+    expect(slopped('screens/Trainer/CreateWorkout.js').length).toBeGreaterThanOrEqual(3); // Remove + 2 chips
+    expect(read('screens/Trainer/CreateWorkout.js')).toMatch(/removeExercise\(index\)\} hitSlop=\{REMOVE_HIT_SLOP\}/);
+    expect(read('screens/Trainer/CreateWorkout.js').match(/hitSlop=\{CHIP_HIT_SLOP\}/g)).toHaveLength(2);
+    expect(read('screens/Trainer/EditWorkout.js')).toMatch(/style=\{styles\.removeIcon\} hitSlop=\{REMOVE_ICON_HIT_SLOP\}/);
+    expect(read('screens/Trainer/TrainerScreen.js')).toMatch(/handleDeleteTemplate\(t\.id\)\} hitSlop=/);
+    expect(read('screens/Trainer/TrainerScreen.js')).toMatch(/hitSlop=\{COMPACT_HIT_SLOP\} onPress=\{\(\) => setShowSaveModal\(false\)\}/);
+  });
+
+  it('accessible={false} is allowed only on a marked backdrop or an allowlisted element', () => {
+    expect(optOuts('<TouchableOpacity accessible={false} onPress={close}>')[0].allowed).toBe(false);
+    expect(optOuts('<TouchableOpacity /* a11y-backdrop */ accessible={false} onPress={close}>')[0].allowed).toBe(true);
+    const bad = AUDITED.flatMap((f) => optOuts(read(f), f).filter((o) => !o.allowed).map((o) => `${f}:${o.line}`));
+    expect(bad).toEqual([]);
+    // the two ProgramBuilder modals: backdrop + press-swallowing card each
+    expect(optOuts(read('screens/Trainer/ProgramBuilderScreen.js'), 'screens/Trainer/ProgramBuilderScreen.js')).toHaveLength(4);
+  });
+
+  it('every file under screens/ is audited or listed as not a screen, and the list does not rot', () => {
+    expect(uncoveredScreens()).toEqual([]);
+    expect(uncoveredScreens(AUDITED.filter((f) => f !== 'screens/Logout.js'))).toEqual(['screens/Logout.js']);
+    for (const f of Object.keys(NOT_SCREENS)) {
+      expect(fs.existsSync(path.join(ROOT, f)), f).toBe(true);
+      expect(AUDITED, f).not.toContain(f);
+    }
   });
 });
 

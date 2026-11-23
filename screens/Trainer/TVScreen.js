@@ -324,7 +324,7 @@ const TVScreen = () => {
       {/* Session info bar */}
       <View style={styles.sessionInfoBar}>
         <Text style={styles.sessionInfoName}>{selectedSession.sessionName}</Text>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Leave session" style={styles.leaveSessionButton} onPress={leaveSession}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Leave session" style={styles.leaveSessionButton} hitSlop={{ top: 10, bottom: 10 }} onPress={leaveSession}>
           <Text style={styles.leaveSessionText}>Leave</Text>
         </TouchableOpacity>
       </View>
@@ -454,6 +454,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   refreshButton: {
+    minHeight: 44, // G63
+    justifyContent: "center",
     backgroundColor: Theme.colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -468,6 +470,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   leaveButton: {
+    minHeight: 44, // G63
+    justifyContent: "center",
     backgroundColor: "#dc3545",
     paddingVertical: 10,
     paddingHorizontal: 15,

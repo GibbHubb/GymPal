@@ -486,7 +486,7 @@ export default function TrainerScreen({ route, navigation }) {
         <View style={styles.topLogoRow}>
           {/* G51 — was require("../../assets/GymPal.png"), a file never committed; a wordmark stands in. */}
           <Text style={styles.logo}>GymPal</Text>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8 }}>
             <Text style={styles.backBtnText}>← Back</Text>
           </TouchableOpacity>
         </View>
@@ -511,6 +511,8 @@ export default function TrainerScreen({ route, navigation }) {
               styles.sessionStatusButton,
               sessionActive ? styles.sessionActiveButton : styles.sessionInactiveButton,
             ]}
+            // G63 — the pill is about 25pt tall; the slop stays inside the session bar's padding
+            hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
             onPress={registerAsTrainer}
           >
             <Text style={styles.sessionStatusText}>{sessionActive ? "Live" : "Go Live"}</Text>
@@ -622,10 +624,10 @@ export default function TrainerScreen({ route, navigation }) {
           <View style={styles.timerContainer}>
             <Text style={styles.timerText}>{formatTime(timer)}</Text>
             <View style={styles.timerAdjustRow}>
-              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Subtract one minute" onPress={() => handleAddTime(-60)} style={styles.timeAdjustBtn}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Subtract one minute" onPress={() => handleAddTime(-60)} style={styles.timeAdjustBtn} hitSlop={TIME_ADJUST_HIT_SLOP}>
                 <Text style={styles.timeAdjustText}>-1m</Text>
               </TouchableOpacity>
-              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add one minute" onPress={() => handleAddTime(60)} style={styles.timeAdjustBtn}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Add one minute" onPress={() => handleAddTime(60)} style={styles.timeAdjustBtn} hitSlop={TIME_ADJUST_HIT_SLOP}>
                 <Text style={styles.timeAdjustText}>+1m</Text>
               </TouchableOpacity>
             </View>
@@ -681,6 +683,7 @@ export default function TrainerScreen({ route, navigation }) {
               accessibilityRole="button"
               accessibilityLabel={clientSessionActive ? 'End client live session' : 'Start client live session'}
               style={[styles.liveSessionBtn, clientSessionActive ? styles.liveSessionBtnEnd : styles.liveSessionBtnStart]}
+              hitSlop={COMPACT_HIT_SLOP}
               onPress={clientSessionActive ? handleEndClientSession : handleStartClientSession}
             >
               <Text style={styles.liveSessionBtnText}>{clientSessionActive ? "End" : "Start"}</Text>
@@ -696,7 +699,7 @@ export default function TrainerScreen({ route, navigation }) {
                 value={pushExerciseName}
                 onChangeText={setPushExerciseName}
               />
-              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Push exercise to client" style={styles.liveSessionBtnPush} onPress={handlePushExercise}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Push exercise to client" style={styles.liveSessionBtnPush} hitSlop={COMPACT_HIT_SLOP} onPress={handlePushExercise}>
                 <Text style={styles.liveSessionBtnText}>Push</Text>
               </TouchableOpacity>
             </View>
@@ -705,7 +708,7 @@ export default function TrainerScreen({ route, navigation }) {
 
         {/* G7 — Workout Templates */}
         <View style={styles.liveSessionPanel}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Templates" accessibilityState={{ expanded: showTemplates }} onPress={() => setShowTemplates(!showTemplates)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Templates" accessibilityState={{ expanded: showTemplates }} onPress={() => setShowTemplates(!showTemplates)} hitSlop={{ top: 11, bottom: 11 }} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.liveSessionTitle}>📋 Templates</Text>
             <Text style={styles.templatesChevron}>{showTemplates ? '▲' : '▼'}</Text>
           </TouchableOpacity>
@@ -718,6 +721,7 @@ export default function TrainerScreen({ route, navigation }) {
                   accessibilityRole="button"
                   accessibilityLabel="Save as template"
                   style={[styles.liveSessionBtn, styles.liveSessionBtnStart, { marginBottom: 8, alignSelf: 'flex-start' }]}
+                  hitSlop={COMPACT_HIT_SLOP}
                   onPress={() => setShowSaveModal(true)}
                 >
                   <Text style={styles.liveSessionBtnText}>Save as Template</Text>
@@ -732,10 +736,10 @@ export default function TrainerScreen({ route, navigation }) {
                     value={templateName}
                     onChangeText={setTemplateName}
                   />
-                  <TouchableOpacity accessibilityRole="button" accessibilityLabel="Save template" style={[styles.liveSessionBtn, styles.liveSessionBtnStart]} onPress={handleSaveTemplate}>
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel="Save template" style={[styles.liveSessionBtn, styles.liveSessionBtnStart]} hitSlop={COMPACT_HIT_SLOP} onPress={handleSaveTemplate}>
                     <Text style={styles.liveSessionBtnText}>Save</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cancel saving template" style={[styles.liveSessionBtn, styles.liveSessionBtnEnd]} onPress={() => setShowSaveModal(false)}>
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cancel saving template" style={[styles.liveSessionBtn, styles.liveSessionBtnEnd]} hitSlop={COMPACT_HIT_SLOP} onPress={() => setShowSaveModal(false)}>
                     <Text style={styles.liveSessionBtnText}>✕</Text>
                   </TouchableOpacity>
                 </View>
@@ -747,11 +751,11 @@ export default function TrainerScreen({ route, navigation }) {
               ) : (
                 templates.map((t) => (
                   <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: Theme.colors.glassBorder }}>
-                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Load template ${say(t.name)}, ${sayCount(t.exercises?.length, 'exercise')}`} style={{ flex: 1 }} onPress={() => handleLoadTemplate(t)}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Load template ${say(t.name)}, ${sayCount(t.exercises?.length, 'exercise')}`} style={{ flex: 1, minHeight: 44, justifyContent: 'center' }} onPress={() => handleLoadTemplate(t)}>
                       <Text style={styles.templateName}>{t.name}</Text>
                       <Text style={styles.templateMeta}>{t.exercises.length} exercises</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete template ${say(t.name)}`} onPress={() => handleDeleteTemplate(t.id)}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete template ${say(t.name)}`} onPress={() => handleDeleteTemplate(t.id)} hitSlop={{ top: 13, bottom: 13, left: 6, right: 6 }}>
                       <Text style={styles.templateDeleteText}>✕</Text>
                     </TouchableOpacity>
                   </View>
@@ -775,6 +779,11 @@ export default function TrainerScreen({ route, navigation }) {
     </ScreenWrapper>
   )
 }
+
+// G63 — 44pt touch areas for the compact controls without redrawing them: the live-session
+// buttons are about 30pt tall (8pt apart), the -1m/+1m timer chips about 16x27 (about 20pt apart).
+const COMPACT_HIT_SLOP = { top: 8, bottom: 8, left: 2, right: 2 }
+const TIME_ADJUST_HIT_SLOP = { top: 14, bottom: 14, left: 9, right: 9 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16, backgroundColor: Theme.colors.background },
@@ -852,14 +861,14 @@ const styles = StyleSheet.create({
   timeAdjustBtn: { backgroundColor: "rgba(255,255,255,0.05)", paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
   timeAdjustText: { color: "#fff", fontSize: 10, fontWeight: "bold" },
   timerControls: { flexDirection: "row", width: "50%", justifyContent: "space-between" },
-  startButton: { backgroundColor: Theme.colors.primary, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center" },
+  startButton: { backgroundColor: Theme.colors.primary, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center", minHeight: 44, justifyContent: "center" }, // G63
   startButtonText: { color: "#000", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
   // G62 — white on #FF4C4C was 3.3:1; the strong red fill carries white text (5.6:1)
-  pauseButton: { backgroundColor: Theme.colors.dangerStrong, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center" },
+  pauseButton: { backgroundColor: Theme.colors.dangerStrong, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center", minHeight: 44, justifyContent: "center" }, // G63
   pauseButtonText: { color: "#fff", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
-  resetButton: { backgroundColor: Theme.colors.surface, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center", borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  resetButton: { backgroundColor: Theme.colors.surface, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center", borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', minHeight: 44, justifyContent: "center" }, // G63
   resetButtonText: { color: "#fff", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
-  nextButton: { backgroundColor: Theme.colors.primary, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "20%", alignItems: "center" },
+  nextButton: { backgroundColor: Theme.colors.primary, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "20%", alignItems: "center", minHeight: 44, justifyContent: "center" }, // G63
   nextButtonText: { color: "#000", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
   inputContainer: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
   input: {
@@ -871,7 +880,7 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.surface,
     color: "#fff",
   },
-  addButton: { marginLeft: 10, backgroundColor: Theme.colors.primary, paddingVertical: 10, paddingHorizontal: 15, borderRadius: 8 },
+  addButton: { marginLeft: 10, backgroundColor: Theme.colors.primary, paddingVertical: 10, paddingHorizontal: 15, borderRadius: 8, minHeight: 44, justifyContent: "center" }, // G63
   buttonText: { color: "#000", fontWeight: "900", fontSize: 14 },
   bottomControls: {
     position: "absolute",
@@ -883,6 +892,8 @@ const styles = StyleSheet.create({
   debugToggle: {
     backgroundColor: Theme.colors.surface,
     padding: 12,
+    minWidth: 44, // G63
+    alignItems: "center",
     borderRadius: Theme.borderRadius.round,
     marginRight: 10,
     elevation: 5,

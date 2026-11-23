@@ -338,7 +338,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
               {participants.map((participant, index) => (
                 <View key={index} style={styles.headerCellContainer}>
                   <Text style={styles.headerCell}>{participant.participant_name}</Text>
-                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove participant ${say(participant.participant_name)}`} onPress={() => handleRemoveParticipant(participant.user_id)} style={styles.removeIcon}>
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove participant ${say(participant.participant_name)}`} onPress={() => handleRemoveParticipant(participant.user_id)} style={styles.removeIcon} hitSlop={REMOVE_ICON_HIT_SLOP}>
                     <Text style={styles.removeIconText}>✕</Text>
                   </TouchableOpacity>
                 </View>
@@ -418,6 +418,10 @@ export default function EditWorkoutScreen({ route, navigation }) {
   );
 }
 
+// G63 — the participant ✕ is a 12pt glyph pinned to the header cell's top-right corner: the slop
+// grows its touch area down and to the left (into the cell) to 44x44.
+const REMOVE_ICON_HIT_SLOP = { top: 2, bottom: 28, left: 30, right: 2 };
+
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16, paddingBottom: 50, backgroundColor: Theme.colors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -428,11 +432,13 @@ const styles = StyleSheet.create({
   inputContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
   input: { flex: 1, padding: 10, borderWidth: 1, borderColor: Theme.colors.glassBorder, borderRadius: 8, backgroundColor: Theme.colors.surface, color: '#fff' },
   repsInput: { width: 60, padding: 10, borderWidth: 1, borderColor: Theme.colors.glassBorder, borderRadius: 8, backgroundColor: Theme.colors.surface, color: '#fff', textAlign: 'center', marginLeft: 8 },
-  addButton: { backgroundColor: Theme.colors.primary, paddingVertical: 10, paddingHorizontal: 15, borderRadius: 8, marginLeft: 8 },
+  addButton: { backgroundColor: Theme.colors.primary, paddingVertical: 10, paddingHorizontal: 15, borderRadius: 8, marginLeft: 8, minHeight: 44, justifyContent: 'center' }, // G63
   buttonText: { color: '#000', fontWeight: '900', fontSize: 14 },
   headerRow: { flexDirection: 'row', marginBottom: 5 },
   firstColumn: { width: 100 },
-  headerCellContainer: { flex: 1, width: 120, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 4, marginHorizontal: 2, position: 'relative' },
+  // G63 — minHeight keeps the participant ✕'s 44pt slop inside the cell (a touch outside the
+  // parent is not delivered on Android)
+  headerCellContainer: { flex: 1, width: 120, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 4, marginHorizontal: 2, position: 'relative', minHeight: 46 },
   headerCell: { fontWeight: '900', fontSize: 12, color: Theme.colors.text, textAlign: 'center', textTransform: 'uppercase' },
   removeIcon: { position: 'absolute', top: 2, right: 2 },
   subHeaderRow: { flexDirection: 'row', marginBottom: 5 },
@@ -448,7 +454,7 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25 },
   footerBtn: { width: '48%' },
   dropdown: { position: 'absolute', top: 45, left: 0, right: 0, backgroundColor: Theme.colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.primary, zIndex: 1000, maxHeight: 150 },
-  dropdownItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  dropdownItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)', minHeight: 44, justifyContent: 'center' }, // G63
   dropdownItemText: { color: '#fff', fontSize: 14 },
   removeIconText: { color: Theme.colors.error, fontSize: 12 }, // G62 — was inline
 });

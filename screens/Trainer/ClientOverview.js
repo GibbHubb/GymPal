@@ -217,14 +217,14 @@ export default function ClientOverview({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, alignItems: 'center', backgroundColor: '#FFFFFF' },
   logo: { width: 150, height: 80 },
-  backButton: { position: 'absolute', top: 20, right: 20, backgroundColor: Theme.colors.primary, padding: 10, borderRadius: 8 },
+  backButton: { position: 'absolute', top: 20, right: 20, backgroundColor: Theme.colors.primary, padding: 10, borderRadius: 8, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, // G63
   backButtonText: { color: '#1A1A1A', fontWeight: 'bold', fontSize: 18 },
   header: { fontSize: 24, fontWeight: 'bold', color: '#3274ba', marginBottom: 16 },
   searchInput: { borderWidth: 1, borderColor: '#8ebce6', borderRadius: 8, padding: 12, width: '90%', marginBottom: 16 },
-  addButton: { backgroundColor: '#32a852', padding: 12, borderRadius: 8, marginBottom: 16 },
+  addButton: { backgroundColor: '#32a852', padding: 12, borderRadius: 8, marginBottom: 16, minHeight: 44, justifyContent: 'center' }, // G63
   addButtonText: { color: '#1A1A1A', fontWeight: 'bold', fontSize: 16 }, // G62 — white on this green was 3.1:1
   row: { flex: 1, justifyContent: 'space-between', marginBottom: 12 },
-  userCard: { flex: 1, alignItems: 'center', backgroundColor: Theme.colors.primary, padding: 12, marginHorizontal: 4, borderRadius: 8 },
+  userCard: { flex: 1, alignItems: 'center', backgroundColor: Theme.colors.primary, padding: 12, marginHorizontal: 4, borderRadius: 8, minHeight: 44, justifyContent: 'center' }, // G63
   username: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' },
 
   /** ✅ Restored Beautiful Modal Styles **/
@@ -232,11 +232,11 @@ const styles = StyleSheet.create({
   modalContent: { backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '85%', alignItems: 'center' },
   modalHeader: { fontSize: 22, fontWeight: 'bold', marginBottom: 10, color: '#3274ba' },
   input: { borderWidth: 1, borderRadius: 8, padding: 10, width: '90%', marginBottom: 12, backgroundColor: '#f8f8f8' },
-  roleButton: { padding: 10, marginVertical: 5, borderRadius: 8, width: '50%', alignItems: 'center', borderWidth: 1, borderColor: '#3274ba' },
+  roleButton: { padding: 10, marginVertical: 5, borderRadius: 8, width: '50%', alignItems: 'center', borderWidth: 1, borderColor: '#3274ba', minHeight: 44, justifyContent: 'center' }, // G63
   roleSelected: { backgroundColor: '#3274ba' },
   modalButtons: { flexDirection: 'row', marginTop: 15 },
-  cancelButton: { backgroundColor: Theme.colors.dangerStrong, padding: 12, borderRadius: 8, marginRight: 10 }, // G62 — #d9534f was 4.0:1 under white
-  saveButton: { backgroundColor: '#32a852', padding: 12, borderRadius: 8 },
+  cancelButton: { backgroundColor: Theme.colors.dangerStrong, padding: 12, borderRadius: 8, marginRight: 10, minHeight: 44, justifyContent: 'center' }, // G62 — #d9534f was 4.0:1 under white; G63 — 44pt
+  saveButton: { backgroundColor: '#32a852', padding: 12, borderRadius: 8, minHeight: 44, justifyContent: 'center' }, // G63
   cancelText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   saveText: { color: '#1A1A1A', fontWeight: 'bold', fontSize: 16 }, // G62 — white on this green was 3.1:1
   // G62 — these were referenced but never defined (platform-default text colour); the default

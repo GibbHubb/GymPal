@@ -112,7 +112,7 @@ export default function ProfileScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#fff', alignItems: 'center' },
   header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#3274ba' },
-  backButton: { alignSelf: 'flex-start', marginBottom: 10, padding: 10 },
+  backButton: { alignSelf: 'flex-start', marginBottom: 10, padding: 10, minHeight: 44, justifyContent: 'center' }, // G63
   backButtonText: { fontSize: 18, color: '#3274ba' },
   input: { width: '90%', padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 16 },
   saveButton: { backgroundColor: '#32a852', padding: 15, borderRadius: 8, width: '90%', alignItems: 'center' },

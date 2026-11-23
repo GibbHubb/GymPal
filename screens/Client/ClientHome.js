@@ -375,6 +375,7 @@ const styles = StyleSheet.create({
   },
   templateDelete: {
     minWidth: 44, // G53
+    minHeight: 44, // G63 — it stretches to the row anyway; this makes the floor explicit
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Theme.spacing.m,

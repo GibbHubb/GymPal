@@ -177,8 +177,10 @@ export default function ProgramBuilderScreen() {
 
             {/* Template picker */}
             <Modal visible={!!pickerCell} animationType="fade" transparent onRequestClose={() => setPickerCell(null)}>
-                <TouchableOpacity accessible={false} style={styles.modalBackdrop} activeOpacity={1} onPress={() => setPickerCell(null)}>
+                <TouchableOpacity /* a11y-backdrop */ accessible={false} style={styles.modalBackdrop} activeOpacity={1} onPress={() => setPickerCell(null)}>
                     <TouchableOpacity
+                        /* a11y-backdrop: the card swallows taps so they do not reach the backdrop;
+                           its children stay individually focusable */
                         accessible={false}
                         accessibilityViewIsModal
                         onAccessibilityEscape={() => setPickerCell(null)}
@@ -227,8 +229,10 @@ export default function ProgramBuilderScreen() {
 
             {/* Assign modal */}
             <Modal visible={showAssign} animationType="fade" transparent onRequestClose={() => setShowAssign(false)}>
-                <TouchableOpacity accessible={false} style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAssign(false)}>
+                <TouchableOpacity /* a11y-backdrop */ accessible={false} style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAssign(false)}>
                     <TouchableOpacity
+                        /* a11y-backdrop: the card swallows taps so they do not reach the backdrop;
+                           its children stay individually focusable */
                         accessible={false}
                         accessibilityViewIsModal
                         onAccessibilityEscape={() => setShowAssign(false)}
@@ -318,6 +322,7 @@ const styles = StyleSheet.create({
     modalTitle: { color: Theme.colors.text, fontSize: 16, fontWeight: '700', marginBottom: Theme.spacing.m },
     modalRow: {
         paddingVertical: 12, paddingHorizontal: 8,
+        minHeight: 44, justifyContent: 'center', // G63
         borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)',
     },
     modalRowText: { color: Theme.colors.text, fontSize: 14 },

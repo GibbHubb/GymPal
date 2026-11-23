@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, padding: Theme.spacing.m },
   card: { padding: Theme.spacing.m, marginBottom: Theme.spacing.m },
   intro: { color: Theme.colors.text, marginBottom: 8 },
-  optButton: { padding: 10, borderRadius: 6, alignItems: 'center' },
+  optButton: { padding: 10, borderRadius: 6, alignItems: 'center', minHeight: 44, justifyContent: 'center' }, // G63 — 44pt target
   optInButton: { backgroundColor: Theme.colors.primary },
   optOutButton: { backgroundColor: Theme.colors.dangerStrong },
   optInText: { color: Theme.colors.onPrimary, fontWeight: '700' },

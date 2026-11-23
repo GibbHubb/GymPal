@@ -130,15 +130,15 @@ export default function ClientsManagementScreen() {
       </View>
       <View style={styles.rowActions}>
         {item.status === 'active' ? (
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Archive ${say(item.username)}`} onPress={() => handleArchive(item)} style={styles.btnGhost}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Archive ${say(item.username)}`} onPress={() => handleArchive(item)} style={styles.btnGhost} hitSlop={PILL_HIT_SLOP}>
             <Text style={styles.btnText}>Archive</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Restore ${say(item.username)}`} onPress={() => handleUnarchive(item)} style={styles.btnGhost}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Restore ${say(item.username)}`} onPress={() => handleUnarchive(item)} style={styles.btnGhost} hitSlop={PILL_HIT_SLOP}>
             <Text style={styles.btnText}>Restore</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove ${say(item.username)}`} onPress={() => handleDelete(item)} style={styles.btnDanger}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove ${say(item.username)}`} onPress={() => handleDelete(item)} style={styles.btnDanger} hitSlop={PILL_HIT_SLOP}>
           <Text style={styles.btnDangerText}>✕</Text>
         </TouchableOpacity>
       </View>
@@ -173,10 +173,10 @@ export default function ClientsManagementScreen() {
       </View>
 
       <View style={styles.tabs}>
-        <TouchableOpacity accessibilityRole="tab" accessibilityLabel={`Active clients, ${active.length}`} accessibilityState={{ selected: !showArchived }} onPress={() => setShowArchived(false)} style={[styles.tab, !showArchived && styles.tabActive]}>
+        <TouchableOpacity accessibilityRole="tab" accessibilityLabel={`Active clients, ${active.length}`} accessibilityState={{ selected: !showArchived }} onPress={() => setShowArchived(false)} style={[styles.tab, !showArchived && styles.tabActive]} hitSlop={PILL_HIT_SLOP}>
           <Text style={styles.tabText}>Active ({active.length})</Text>
         </TouchableOpacity>
-        <TouchableOpacity accessibilityRole="tab" accessibilityLabel={`Archived clients, ${archived.length}`} accessibilityState={{ selected: showArchived }} onPress={() => setShowArchived(true)} style={[styles.tab, showArchived && styles.tabActive]}>
+        <TouchableOpacity accessibilityRole="tab" accessibilityLabel={`Archived clients, ${archived.length}`} accessibilityState={{ selected: showArchived }} onPress={() => setShowArchived(true)} style={[styles.tab, showArchived && styles.tabActive]} hitSlop={PILL_HIT_SLOP}>
           <Text style={styles.tabText}>Archived ({archived.length})</Text>
         </TouchableOpacity>
       </View>
@@ -203,6 +203,10 @@ export default function ClientsManagementScreen() {
     </ScreenWrapper>
   );
 }
+
+// G63 — the Archive/Restore/Remove pills and the tabs are drawn 32-35pt tall; the slop takes the
+// touch area to 44pt without growing the rows.
+const PILL_HIT_SLOP = { top: 6, bottom: 6, left: 2, right: 2 };
 
 const styles = StyleSheet.create({
   addBox: {
