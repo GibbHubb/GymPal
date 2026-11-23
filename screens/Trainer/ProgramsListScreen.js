@@ -133,7 +133,7 @@ export default function ProgramsListScreen() {
                             <Text style={styles.rowTitle}>{item.name}</Text>
                             <Text style={styles.rowMeta}>{item.total_weeks} week{item.total_weeks === 1 ? '' : 's'}</Text>
                         </View>
-                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete program ${say(item.name)}`} onPress={() => confirmDelete(item)} hitSlop={12}>
+                        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete program ${say(item.name)}`} onPress={() => confirmDelete(item)} hitSlop={13}>
                             <Text style={styles.del}>✕</Text>
                         </TouchableOpacity>
                     </TouchableOpacity>

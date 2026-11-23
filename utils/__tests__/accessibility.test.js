@@ -179,16 +179,22 @@ describe('G63 — 44pt targets, opt-outs only on backdrops, every screen audited
   const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
   const sheet = (body) => `\nconst styles = StyleSheet.create({ ${body} });\n`;
   const one = (jsx, body = '') => targetSizes(`${jsx}${sheet(body)}`)[0];
+  const remove = `<TouchableOpacity accessibilityRole="button" accessibilityLabel="Remove" onPress={() => go()}><Text style={styles.t}>Remove</Text></TouchableOpacity>`;
 
   it('a bare text button is flagged; hitSlop or min sizes clear it', () => {
-    const remove = `<TouchableOpacity accessibilityRole="button" accessibilityLabel="Remove" onPress={() => go()}><Text style={styles.t}>Remove</Text></TouchableOpacity>`;
     expect(one(remove, 't: { fontSize: 14 }').small).toBe(true);
-    const slopped = remove.replace('onPress=', 'hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }} onPress=');
+    const slopped = remove.replace('onPress=', 'hitSlop={{ top: 15, bottom: 15, left: 8, right: 8 }} onPress=');
     expect(one(slopped, 't: { fontSize: 14 }').small).toBe(false);
-    const named = `const SLOP = { top: 14, bottom: 14, left: 8, right: 8 };\n${remove.replace('onPress=', 'hitSlop={SLOP} onPress=')}`;
+    const named = `const SLOP = { top: 15, bottom: 15, left: 8, right: 8 };\n${remove.replace('onPress=', 'hitSlop={SLOP} onPress=')}`;
     expect(one(named, 't: { fontSize: 14 }').small).toBe(false);
     const sized = remove.replace('onPress=', 'style={styles.b} onPress=');
     expect(one(sized, 't: { fontSize: 14 }, b: { minHeight: 44, minWidth: 44 }').small).toBe(false);
+  });
+
+  it('an ESTIMATED side must clear 44 by 2pt; a declared 44 is exact (review: 44.4 passed on a hair)', () => {
+    // 16.8 (14pt text) + 28 slop = 44.8: over 44, under 44 + 2
+    expect(one(remove.replace('onPress=', 'hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }} onPress='), 't: { fontSize: 14 }').small).toBe(true);
+    expect(one('<TouchableOpacity style={styles.b} onPress={f} />', 'b: { height: 44, width: 44 }').small).toBe(false);
   });
 
   it('a declared height under 44 fails; a conditional style does not rescue it; a ternary takes the smaller', () => {
@@ -199,41 +205,74 @@ describe('G63 — 44pt targets, opt-outs only on backdrops, every screen audited
     expect(one(box('styles.b'), 'b: { height: 60, width: 60, shadowOffset: { width: 0, height: 2 } }').small).toBe(false);
   });
 
-  it('a side it cannot estimate is reported as unsized, not passed or failed', () => {
+  it('an unreadable width passes only when the height clears 44; an unreadable height fails unless allowlisted', () => {
     const r = one(`<TouchableOpacity style={styles.a} onPress={f}><Text style={styles.t}>{name}</Text></TouchableOpacity>`,
-      "a: { padding: 14, width: '48%' }, t: { fontSize: 14 }");
-    expect(r.small).toBe(false);
+      "a: { padding: 16, width: '48%' }, t: { fontSize: 14 }");
     expect(r.unsized).toEqual(['width']);
-    expect(r.h).toBeCloseTo(14 * 2 + 14 * 1.2, 5);
+    expect(r.h).toBeCloseTo(16 * 2 + 14 * 1.2, 5);
+    expect(r.fail).toBe(false);
+    const icon = one('<TouchableOpacity style={styles.a} onPress={f}><Icon name="x" /></TouchableOpacity>', 'a: { padding: 4 }');
+    expect(icon.unsized).toContain('height');
+    expect(icon.fail).toBe(true);
   });
 
-  it(`every tappable on the audited files reaches ${MIN_TARGET}pt (box + hitSlop)`, () => {
-    const small = AUDITED.flatMap((f) => targetSizes(read(f), f).filter((s) => s.small).map((s) => `${f}:${s.line}`));
-    expect(small).toEqual([]);
+  it('hitSlop must fit inside the parent padding (Android drops touches outside the parent)', () => {
+    const jsx = (pad) => `<View style={styles.row}><TouchableOpacity style={styles.b} hitSlop={{ top: 8, bottom: 8 }} onPress={f} /></View>`
+      + sheet(`row: { flexDirection: 'row', paddingVertical: ${pad} }, b: { height: 30, width: 60 }`);
+    expect(targetSizes(jsx(0))[0].slopIssues.join()).toMatch(/top slop 8 > parent <View> padding 0/);
+    expect(targetSizes(jsx(8))[0].slopIssues).toEqual([]);
   });
 
-  it('the targets named in G63 reach 44pt by hitSlop or min size, not by a quirk of the estimate', () => {
-    const slopped = (f) => targetSizes(read(f), f).filter((s) => s.slop && (s.slop.v > 0 || s.slop.h > 0));
-    expect(slopped('screens/Trainer/CreateWorkout.js').length).toBeGreaterThanOrEqual(3); // Remove + 2 chips
-    expect(read('screens/Trainer/CreateWorkout.js')).toMatch(/removeExercise\(index\)\} hitSlop=\{REMOVE_HIT_SLOP\}/);
-    expect(read('screens/Trainer/CreateWorkout.js').match(/hitSlop=\{CHIP_HIT_SLOP\}/g)).toHaveLength(2);
-    expect(read('screens/Trainer/EditWorkout.js')).toMatch(/style=\{styles\.removeIcon\} hitSlop=\{REMOVE_ICON_HIT_SLOP\}/);
-    expect(read('screens/Trainer/TrainerScreen.js')).toMatch(/handleDeleteTemplate\(t\.id\)\} hitSlop=/);
-    expect(read('screens/Trainer/TrainerScreen.js')).toMatch(/hitSlop=\{COMPACT_HIT_SLOP\} onPress=\{\(\) => setShowSaveModal\(false\)\}/);
+  it('slop along the row may not exceed half the gap to a sibling control', () => {
+    const jsx = (s) => `<View style={styles.row}>
+      <TouchableOpacity style={styles.b} hitSlop={{ left: ${s}, right: ${s} }} onPress={f} />
+      <TouchableOpacity style={styles.b} hitSlop={{ left: ${s}, right: ${s} }} onPress={g} />
+    </View>` + sheet("row: { flexDirection: 'row', gap: 8, padding: 10 }, b: { height: 44, width: 40 }");
+    expect(targetSizes(jsx(6))[0].slopIssues.join()).toMatch(/half the gap/);
+    expect(targetSizes(jsx(4)).every((s) => s.slopIssues.length === 0)).toBe(true);
   });
 
-  it('accessible={false} is allowed only on a marked backdrop or an allowlisted element', () => {
+  it(`every tappable on the audited files passes (size, readable height, slop placement)`, () => {
+    const bad = AUDITED.flatMap((f) => targetSizes(read(f), f).filter((s) => s.fail)
+      .map((s) => `${f}:${s.line} ${s.small ? 'small' : ''} ${s.unsized?.join('/') ?? ''} ${s.slopIssues?.join('; ') ?? ''}`));
+    expect(bad).toEqual([]);
+  });
+
+  it('the review cases are boxes now, not slop: Remove, chips, both x buttons, -1m/+1m, live-session buttons', () => {
+    const cw = read('screens/Trainer/CreateWorkout.js');
+    expect(cw).not.toMatch(/HIT_SLOP/);
+    expect(cw).toMatch(/removeExercise\(index\)\} style=\{styles\.removeButton\}/);
+    expect(cw.match(/style=\{styles\.chipButton\}/g)).toHaveLength(2);
+    expect(styleBlock(cw, 'removeButton')).toMatch(/minHeight: 44, minWidth: 44/);
+    const ew = read('screens/Trainer/EditWorkout.js');
+    expect(styleBlock(ew, 'removeIcon')).toMatch(/width: 44, height: 44/);
+    expect(ew).not.toMatch(/REMOVE_ICON_HIT_SLOP/);
+    expect(ew).toMatch(/onPress=\{\(\) => confirmRemoveParticipant\(participant\)\}/);
+    expect(ew).toMatch(/Alert\.alert\(\s*'Remove participant\?'/);
+    const ts = read('screens/Trainer/TrainerScreen.js');
+    expect(ts).not.toMatch(/COMPACT_HIT_SLOP|TIME_ADJUST_HIT_SLOP/);
+    expect(styleBlock(ts, 'timeAdjustBtn')).toMatch(/minWidth: 44, minHeight: 44/);
+    expect(styleBlock(ts, 'timerContainer')).toMatch(/minWidth: 104/); // 2 x 44 + 2 x 8 padding
+    expect(styleBlock(ts, 'liveSessionBtn')).toMatch(/minHeight: 44/);
+    expect(styleBlock(ts, 'templateDeleteButton')).toMatch(/minWidth: 44, minHeight: 44/);
+  });
+
+  it('accessible={false} is allowed only on a marked backdrop inside a Modal or with a backdrop/card style', () => {
     expect(optOuts('<TouchableOpacity accessible={false} onPress={close}>')[0].allowed).toBe(false);
-    expect(optOuts('<TouchableOpacity /* a11y-backdrop */ accessible={false} onPress={close}>')[0].allowed).toBe(true);
+    // the marker alone is not enough any more
+    expect(optOuts('<View><TouchableOpacity /* a11y-backdrop */ accessible={false} onPress={close}></TouchableOpacity></View>')[0].allowed).toBe(false);
+    expect(optOuts('<Modal><TouchableOpacity /* a11y-backdrop */ accessible={false} onPress={close}></TouchableOpacity></Modal>')[0].allowed).toBe(true);
+    expect(optOuts('<TouchableOpacity /* a11y-backdrop */ accessible={false} style={styles.modalBackdrop} onPress={close}>')[0].allowed).toBe(true);
     const bad = AUDITED.flatMap((f) => optOuts(read(f), f).filter((o) => !o.allowed).map((o) => `${f}:${o.line}`));
     expect(bad).toEqual([]);
-    // the two ProgramBuilder modals: backdrop + press-swallowing card each
     expect(optOuts(read('screens/Trainer/ProgramBuilderScreen.js'), 'screens/Trainer/ProgramBuilderScreen.js')).toHaveLength(4);
   });
 
-  it('every file under screens/ is audited or listed as not a screen, and the list does not rot', () => {
+  it('every file under screens/ and components/ is audited or listed with a reason, and the list does not rot', () => {
     expect(uncoveredScreens()).toEqual([]);
     expect(uncoveredScreens(AUDITED.filter((f) => f !== 'screens/Logout.js'))).toEqual(['screens/Logout.js']);
+    expect(uncoveredScreens(AUDITED.filter((f) => f !== 'components/RestTimer.js'))).toEqual(['components/RestTimer.js']);
+    for (const f of ['components/CustomHeader.js', 'components/ExerciseRow.js', 'components/RestTimer.js']) expect(AUDITED).toContain(f);
     for (const f of Object.keys(NOT_SCREENS)) {
       expect(fs.existsSync(path.join(ROOT, f)), f).toBe(true);
       expect(AUDITED, f).not.toContain(f);

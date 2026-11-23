@@ -206,7 +206,9 @@ export default function ClientsManagementScreen() {
 
 // G63 — the Archive/Restore/Remove pills and the tabs are drawn 32-35pt tall; the slop takes the
 // touch area to 44pt without growing the rows.
-const PILL_HIT_SLOP = { top: 6, bottom: 6, left: 2, right: 2 };
+// G63 review — vertical only (the pills sit 8-16pt apart in a row), and the rows that hold them
+// carry the same padding so the slop stays inside the parent (Android drops touches outside it).
+const PILL_HIT_SLOP = { top: 7, bottom: 7 };
 
 const styles = StyleSheet.create({
   addBox: {
@@ -240,6 +242,7 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: 'row',
     paddingHorizontal: Theme.spacing.l,
+    paddingVertical: 7, // G63 review — holds the tabs' hitSlop
     marginBottom: Theme.spacing.m,
     gap: Theme.spacing.m,
   },
@@ -282,6 +285,7 @@ const styles = StyleSheet.create({
   rowActions: {
     flexDirection: 'row',
     gap: Theme.spacing.s,
+    paddingVertical: 7, // G63 review — holds the pills' hitSlop
   },
   btnGhost: {
     paddingVertical: Theme.spacing.s,

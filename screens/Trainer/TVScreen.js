@@ -324,7 +324,7 @@ const TVScreen = () => {
       {/* Session info bar */}
       <View style={styles.sessionInfoBar}>
         <Text style={styles.sessionInfoName}>{selectedSession.sessionName}</Text>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Leave session" style={styles.leaveSessionButton} hitSlop={{ top: 10, bottom: 10 }} onPress={leaveSession}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Leave session" style={styles.leaveSessionButton} hitSlop={{ top: 11, bottom: 11 }} onPress={leaveSession}>
           <Text style={styles.leaveSessionText}>Leave</Text>
         </TouchableOpacity>
       </View>
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#3274ba",
-    paddingVertical: 8,
+    paddingVertical: 11, // G63 review — was 8: holds Leave's 11pt hitSlop inside the bar
     paddingHorizontal: 15,
     marginBottom: 10,
   },

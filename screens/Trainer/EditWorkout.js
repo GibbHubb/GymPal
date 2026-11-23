@@ -186,6 +186,18 @@ export default function EditWorkoutScreen({ route, navigation }) {
     }
   };
 
+  // G63 review — the ✕ sits on the participant's header cell: confirm before dropping them.
+  const confirmRemoveParticipant = (participant) => {
+    Alert.alert(
+      'Remove participant?',
+      `Remove ${participant.participant_name || 'this participant'} from this workout?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: () => handleRemoveParticipant(participant.user_id) },
+      ],
+    );
+  };
+
   const handleRemoveParticipant = (userId) => {
     const updatedParticipants = participants.filter(p => p.user_id !== userId);
     setParticipants(updatedParticipants);
@@ -338,7 +350,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
               {participants.map((participant, index) => (
                 <View key={index} style={styles.headerCellContainer}>
                   <Text style={styles.headerCell}>{participant.participant_name}</Text>
-                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove participant ${say(participant.participant_name)}`} onPress={() => handleRemoveParticipant(participant.user_id)} style={styles.removeIcon} hitSlop={REMOVE_ICON_HIT_SLOP}>
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove participant ${say(participant.participant_name)}`} onPress={() => confirmRemoveParticipant(participant)} style={styles.removeIcon}>
                     <Text style={styles.removeIconText}>✕</Text>
                   </TouchableOpacity>
                 </View>
@@ -418,10 +430,6 @@ export default function EditWorkoutScreen({ route, navigation }) {
   );
 }
 
-// G63 — the participant ✕ is a 12pt glyph pinned to the header cell's top-right corner: the slop
-// grows its touch area down and to the left (into the cell) to 44x44.
-const REMOVE_ICON_HIT_SLOP = { top: 2, bottom: 28, left: 30, right: 2 };
-
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16, paddingBottom: 50, backgroundColor: Theme.colors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -440,7 +448,9 @@ const styles = StyleSheet.create({
   // parent is not delivered on Android)
   headerCellContainer: { flex: 1, width: 120, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 4, marginHorizontal: 2, position: 'relative', minHeight: 46 },
   headerCell: { fontWeight: '900', fontSize: 12, color: Theme.colors.text, textAlign: 'center', textTransform: 'uppercase' },
-  removeIcon: { position: 'absolute', top: 2, right: 2 },
+  // G63 review — a 44x44 box in the cell's top-right corner, the glyph drawn in its corner (was a
+  // 12pt glyph with a slop reaching over the participant's name); removing now asks first.
+  removeIcon: { position: 'absolute', top: 0, right: 0, width: 44, height: 44, alignItems: 'flex-end', justifyContent: 'flex-start', paddingTop: 2, paddingRight: 4 },
   subHeaderRow: { flexDirection: 'row', marginBottom: 5 },
   subHeaderContainer: { flexDirection: 'row', justifyContent: 'space-evenly', width: 120, marginHorizontal: 2 },
   subHeaderText: { fontSize: 10, fontWeight: 'bold', color: Theme.colors.textSecondary, width: 50, textAlign: 'center' },

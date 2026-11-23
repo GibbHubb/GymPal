@@ -202,7 +202,7 @@ export default function CreateWorkout({ navigation }) {
           <GlassCard key={index} style={styles.exerciseCard}>
             <View style={styles.exerciseHeader}>
               <Text style={styles.exerciseLabel}>Exercise {index + 1}</Text>
-              <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove exercise ${index + 1}`} onPress={() => removeExercise(index)} hitSlop={REMOVE_HIT_SLOP}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove exercise ${index + 1}`} onPress={() => removeExercise(index)} style={styles.removeButton}>
                 <Text style={styles.removeText}>Remove</Text>
               </TouchableOpacity>
             </View>
@@ -214,7 +214,7 @@ export default function CreateWorkout({ navigation }) {
                   // G61 — activate toggles "superset" (that is what `checked` reports); linking to
                   // the previous row is the long press, offered to screen readers as an action.
                   accessibilityRole="togglebutton"
-                  hitSlop={CHIP_HIT_SLOP}
+                  style={styles.chipButton}
                   accessibilityLabel={`Superset, exercise ${index + 1}`}
                   accessibilityState={{ checked: exercise.group_kind === 'superset' }}
                   accessibilityValue={{ text: exercise.group_with_previous ? 'linked to the previous exercise' : 'not linked to the previous exercise' }}
@@ -233,7 +233,7 @@ export default function CreateWorkout({ navigation }) {
                 </TouchableOpacity>
                 <TouchableOpacity
                   accessibilityRole="togglebutton"
-                  hitSlop={CHIP_HIT_SLOP}
+                  style={styles.chipButton}
                   accessibilityLabel={`Drop set exercise ${index + 1} from the previous one`}
                   accessibilityState={{ checked: exercise.group_kind === 'dropset' && !!exercise.group_with_previous }}
                   onPress={() => {
@@ -324,12 +324,6 @@ export default function CreateWorkout({ navigation }) {
   );
 }
 
-// G63 — 44pt touch areas for the small text controls in each exercise card, without making them
-// bigger on screen: "Remove" (about 17pt tall) and the superset / drop-set chips (about 24pt; the
-// chips sit 8pt apart, so the horizontal slop stays under half of that).
-const REMOVE_HIT_SLOP = { top: 14, bottom: 14, left: 8, right: 8 };
-const CHIP_HIT_SLOP = { top: 12, bottom: 8, left: 4, right: 4 };
-
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16, paddingBottom: 50, backgroundColor: Theme.colors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -361,4 +355,8 @@ const styles = StyleSheet.create({
   removeText: { color: Theme.colors.error, fontWeight: 'bold' },
   chipText: { color: '#94a3b8', fontSize: 12, padding: 4, borderWidth: 1, borderColor: '#475569', borderRadius: 6 },
   chipTextOn: { color: '#22c55e', borderColor: '#22c55e' },
+  // G63 review — the touchable box itself is 44pt (the drawn chip/label stays its size inside it):
+  // hitSlop here fell outside the header row on Android and overlapped between Remove and the chips.
+  removeButton: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+  chipButton: { minHeight: 44, justifyContent: 'center' },
 });
