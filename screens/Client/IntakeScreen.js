@@ -168,7 +168,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Theme.spacing.m,
   },
   backButtonText: {
-    color: '#FFFFFF',
+    // G62 — CustomButton draws the gold gradient under this text: white on it was 1.69:1
+    color: Theme.colors.onPrimary,
     fontSize: 14,
   },
   contentContainer: {

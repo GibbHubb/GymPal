@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   },
   noSessionsText: {
     fontSize: 16,
-    color: "#6c757d",
+    color: "#495057", // G62 — #6c757d on this grey was 4.45:1
     textAlign: "center",
     marginVertical: 20,
     fontStyle: "italic",
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   sessionName: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#3274ba",
+    color: Theme.colors.blueText, // G62 — #3274ba on #e9ecef was 4.1:1
     marginBottom: 5,
   },
   sessionDetails: {
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   tvHeader: { alignItems: "center", marginBottom: 20 },
   timerDisplay: { fontSize: 28, fontWeight: "bold", marginBottom: 10, color: "#3274ba", padding: 10 },
   timerRunning: { backgroundColor: "#e6f7ff", borderRadius: 8 },
-  timerWarning: { color: "#ff4d4f", backgroundColor: "#fff1f0" },
+  timerWarning: { color: Theme.colors.dangerStrong, backgroundColor: "#fff1f0" }, // G62 — #ff4d4f was 2.97:1
   groupLegend: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
   groupBox: { flexDirection: "row", alignItems: "center", marginHorizontal: 8, marginBottom: 4 },
   colorCircle: { width: 16, height: 16, borderRadius: 8, marginRight: 6 },
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 4,
   },
-  headerCell: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  headerCell: { color: "#1A1A1A", fontWeight: "bold", fontSize: 16 }, // G62 — white on #8ebce6 was 2.0:1
   headerCellWrapper: {
     paddingVertical: 16,
     width: 140,
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
   exerciseText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#1A1A1A", // G62 — white on #8ebce6 was 2.0:1
     textAlign: "center",
   },
   dataCell: {

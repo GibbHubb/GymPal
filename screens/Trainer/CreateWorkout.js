@@ -203,7 +203,7 @@ export default function CreateWorkout({ navigation }) {
             <View style={styles.exerciseHeader}>
               <Text style={styles.exerciseLabel}>Exercise {index + 1}</Text>
               <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove exercise ${index + 1}`} onPress={() => removeExercise(index)}>
-                <Text style={{ color: Theme.colors.error, fontWeight: 'bold' }}>Remove</Text>
+                <Text style={styles.removeText}>Remove</Text>
               </TouchableOpacity>
             </View>
 
@@ -226,12 +226,7 @@ export default function CreateWorkout({ navigation }) {
                   onPress={() => toggleSupersetKind(index, exercise)}
                   onLongPress={() => toggleLinkPrevious(index, exercise)}
                 >
-                  <Text style={{
-                    color: exercise.group_kind === 'superset' && exercise.group_with_previous ? '#22c55e' : '#94a3b8',
-                    fontSize: 12, padding: 4, borderWidth: 1,
-                    borderColor: exercise.group_kind === 'superset' && exercise.group_with_previous ? '#22c55e' : '#475569',
-                    borderRadius: 6,
-                  }}>
+                  <Text style={[styles.chipText, exercise.group_kind === 'superset' && exercise.group_with_previous && styles.chipTextOn]}>
                     🔗 Superset {exercise.group_kind === 'superset' && exercise.group_with_previous ? '✓' : ''}
                   </Text>
                 </TouchableOpacity>
@@ -246,12 +241,7 @@ export default function CreateWorkout({ navigation }) {
                       exercise.group_kind !== 'dropset');
                   }}
                 >
-                  <Text style={{
-                    color: exercise.group_kind === 'dropset' && exercise.group_with_previous ? '#22c55e' : '#94a3b8',
-                    fontSize: 12, padding: 4, borderWidth: 1,
-                    borderColor: exercise.group_kind === 'dropset' && exercise.group_with_previous ? '#22c55e' : '#475569',
-                    borderRadius: 6,
-                  }}>
+                  <Text style={[styles.chipText, exercise.group_kind === 'dropset' && exercise.group_with_previous && styles.chipTextOn]}>
                     ↓ Drop-set {exercise.group_kind === 'dropset' && exercise.group_with_previous ? '✓' : ''}
                   </Text>
                 </TouchableOpacity>
@@ -290,7 +280,7 @@ export default function CreateWorkout({ navigation }) {
                   accessibilityLabel={`Rep range for exercise ${index + 1}`}
                   style={styles.statInput} 
                   placeholder="10-12" 
-                  placeholderTextColor="#555"
+                  placeholderTextColor={Theme.colors.textSecondary}
                   value={exercise.repRange} 
                   onChangeText={(text) => updateExercise(index, 'repRange', text)} 
                 />
@@ -301,7 +291,7 @@ export default function CreateWorkout({ navigation }) {
                   accessibilityLabel={`Sets for exercise ${index + 1}`}
                   style={styles.statInput} 
                   placeholder="3" 
-                  placeholderTextColor="#555"
+                  placeholderTextColor={Theme.colors.textSecondary}
                   keyboardType="numeric" 
                   value={exercise.sets} 
                   onChangeText={(text) => updateExercise(index, 'sets', text)} 
@@ -317,7 +307,6 @@ export default function CreateWorkout({ navigation }) {
           title="+ Add Exercise" 
           onPress={addExercise} 
           style={styles.addBtn}
-          textStyle={{ color: '#fff' }}
         />
 
         <CustomButton 
@@ -359,5 +348,9 @@ const styles = StyleSheet.create({
   saveBtn: { marginTop: 15 },
   dropdown: { backgroundColor: Theme.colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.primary, marginTop: -10, marginBottom: 15, maxHeight: 150 },
   dropdownItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  dropdownItemText: { color: '#fff', fontSize: 14 }
+  dropdownItemText: { color: '#fff', fontSize: 14 },
+  // G62 — were inline, named so scripts/contrast_audit.mjs reads them from source.
+  removeText: { color: Theme.colors.error, fontWeight: 'bold' },
+  chipText: { color: '#94a3b8', fontSize: 12, padding: 4, borderWidth: 1, borderColor: '#475569', borderRadius: 6 },
+  chipTextOn: { color: '#22c55e', borderColor: '#22c55e' },
 });

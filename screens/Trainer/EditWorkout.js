@@ -28,7 +28,7 @@ const MemoizedInput = memo(({ value, onChange, placeholder, style, label }) => (
     keyboardType="numeric"
     textAlign="center"
     placeholder={placeholder}
-    placeholderTextColor="#555"
+    placeholderTextColor={Theme.colors.textSecondary}
   />
 ));
 
@@ -339,7 +339,7 @@ export default function EditWorkoutScreen({ route, navigation }) {
                 <View key={index} style={styles.headerCellContainer}>
                   <Text style={styles.headerCell}>{participant.participant_name}</Text>
                   <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove participant ${say(participant.participant_name)}`} onPress={() => handleRemoveParticipant(participant.user_id)} style={styles.removeIcon}>
-                    <Text style={{ color: Theme.colors.error, fontSize: 12 }}>✕</Text>
+                    <Text style={styles.removeIconText}>✕</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -449,5 +449,6 @@ const styles = StyleSheet.create({
   footerBtn: { width: '48%' },
   dropdown: { position: 'absolute', top: 45, left: 0, right: 0, backgroundColor: Theme.colors.surface, borderRadius: 8, borderWidth: 1, borderColor: Theme.colors.primary, zIndex: 1000, maxHeight: 150 },
   dropdownItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  dropdownItemText: { color: '#fff', fontSize: 14 }
+  dropdownItemText: { color: '#fff', fontSize: 14 },
+  removeIconText: { color: Theme.colors.error, fontSize: 12 }, // G62 — was inline
 });

@@ -12,7 +12,7 @@ import path from 'node:path';
 import { auditFiles, scanSource, countA11yProps, CORE_SCREENS, G61_SCREENS, AUDITED } from '../../scripts/a11y_audit.mjs';
 import { activateAndLongPress, a11yActionHandler } from '../a11yActions';
 import { say, sayCount, sayDate, UNKNOWN } from '../a11yText';
-import { audit, contrast, styleBlock, PAIRS } from '../../scripts/contrast_audit.mjs';
+import { audit, contrast, styleBlock, PAIRS, loadTheme } from '../../scripts/contrast_audit.mjs';
 
 const ROOT = path.join(__dirname, '..', '..');
 
@@ -245,6 +245,98 @@ describe('G61 — contrast pairs are bound to the source colour', () => {
     const rows = audit(PAIRS, mutated('screens/Logout.js',
       'buttonText: { color: Theme.colors.onPrimary', 'buttonText: { color: someVariable'));
     expect(row(rows, 'screens/Logout.js', 'buttonText').result).toBe('UNBOUND');
+  });
+});
+
+describe('G62 — contrast table covers the G61 screens, backgrounds bound to source', () => {
+  const disk = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
+  const mutated = (file, from, to) => (f) => {
+    const src = disk(f);
+    if (f !== file) return src;
+    expect(src.split(from).length - 1, `${file}: ${from}`).toBe(1);
+    return src.replace(from, to);
+  };
+  const row = (rows, file, style) => rows.find((r) => r.file === file && r.style === style);
+  const LB = 'screens/Client/LeaderboardScreen.js';
+
+  it('every G61 screen has rows in the table', () => {
+    const tabled = new Set(PAIRS.map(([file]) => file));
+    const screens = G61_SCREENS.filter((f) => f.startsWith('screens/'));
+    expect(screens.filter((f) => !tabled.has(f))).toEqual([]);
+  });
+
+  it('the Leaderboard opt-in/out button passes AA: dark on gold, white on the strong red', () => {
+    const rows = audit();
+    for (const style of ['optInText', 'optOutText']) {
+      const r = row(rows, LB, style);
+      expect(r.result, style).toBe('pass');
+      expect(r.ratio, style).toBeGreaterThanOrEqual(4.5);
+      expect(r.bgFrom, style).toMatch(/^opt(In|Out)Button$/);
+    }
+  });
+
+  it('most rows read their background from source (floor, so bindings are not quietly dropped)', () => {
+    const bound = audit().filter((r) => r.bgFrom !== 'declared');
+    expect(bound.length).toBeGreaterThanOrEqual(150);
+  });
+
+  it('a button fill recoloured back to the shipped bug fails (white on #FF4C4C)', () => {
+    const r = row(audit(PAIRS, mutated(LB,
+      'optOutButton: { backgroundColor: Theme.colors.dangerStrong }',
+      'optOutButton: { backgroundColor: Theme.colors.error }')), LB, 'optOutText');
+    expect(r.result).toBe('FAIL + DRIFT');
+    expect(r.ratio).toBeLessThan(4.5);
+  });
+
+  it('any background recolour, even a passing one, fails as DRIFT until the table is re-checked', () => {
+    const r = row(audit(PAIRS, mutated(LB,
+      'optInButton: { backgroundColor: Theme.colors.primary }',
+      "optInButton: { backgroundColor: '#FFFFFF' }")), LB, 'optInText');
+    expect(r.result).toBe('DRIFT');
+  });
+
+  it('a text style with its own fill and a runtime colour list are bound too', () => {
+    const tv = 'screens/Trainer/TVScreen.js';
+    const own = row(audit(PAIRS, mutated(tv, 'backgroundColor: "#fff1f0"', 'backgroundColor: "#ff9999"')), tv, 'timerWarning');
+    expect(own.pass).toBe(false);
+    const ts = 'screens/Trainer/TrainerScreen.js';
+    const list = row(audit(PAIRS, mutated(ts, 'const groupColors = ["#fcc0d8"', 'const groupColors = ["#3a3a3a"')), ts, 'headerCell (group pink)');
+    expect(list.result).toBe('FAIL + DRIFT');
+  });
+
+  it('an unreadable or missing background fails as UNBOUND instead of passing', () => {
+    const ternary = row(audit(PAIRS, mutated(LB,
+      'optInButton: { backgroundColor: Theme.colors.primary }',
+      'optInButton: { backgroundColor: on ? Theme.colors.primary : Theme.colors.error }')), LB, 'optInText');
+    expect(ternary.result).toBe('UNBOUND');
+    const renamed = row(audit(PAIRS, mutated(LB, '  optInButton: {', '  optInFill: {')), LB, 'optInText');
+    expect(renamed.result).toBe('UNBOUND');
+  });
+
+  // CustomButton always draws the gold gradient, so a `textStyle` colour other than onPrimary is
+  // white-on-gold again (CreateWorkout's "+ Add Exercise" and Intake's "Back" shipped that way).
+  const theme = loadTheme();
+  const offGoldText = (src) => scanSource(src).filter((i) => i.tag === 'CustomButton').flatMap((i) => {
+    const m = i.attrs.match(/textStyle=\{(\{[^}]*\}|styles\.(\w+))\}/);
+    if (!m) return [];
+    const body = m[2] ? styleBlock(src, m[2]) ?? '' : m[1];
+    const c = body.match(/(?:^|[\s{,])color\s*:\s*([^,}\n]+)/);
+    if (!c) return [];
+    const expr = c[1].trim();
+    const tok = expr.match(/^Theme\.colors\.(\w+)$/);
+    const value = tok ? theme.colors[tok[1]] : expr.replace(/['"]/g, '');
+    return value === theme.colors.onPrimary ? [] : [`line ${i.line}: ${expr}`];
+  });
+
+  it('the CustomButton text check catches white on the gold gradient', () => {
+    expect(offGoldText(`<CustomButton onPress={() => go()} textStyle={{ color: '#fff' }} />`)).toHaveLength(1);
+    expect(offGoldText(`<CustomButton onPress={() => go()} textStyle={{ color: Theme.colors.onPrimary }} />`)).toEqual([]);
+  });
+
+  it('no CustomButton overrides its text colour away from onPrimary', () => {
+    const bad = ['screens', 'components'].flatMap(jsFiles)
+      .flatMap((f) => offGoldText(fs.readFileSync(path.join(ROOT, f), 'utf8')).map((b) => `${f} ${b}`));
+    expect(bad).toEqual([]);
   });
 });
 

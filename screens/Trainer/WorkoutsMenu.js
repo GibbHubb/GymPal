@@ -178,8 +178,8 @@ const styles = StyleSheet.create({
   searchInput: { borderWidth: 1, borderColor: '#8ebce6', borderRadius: 8, padding: 10, backgroundColor: '#f8f8f8', color: '#333', marginBottom: 16 },
   workoutItem: { backgroundColor: '#8ebce6', padding: 16, borderRadius: 8, marginBottom: 8 },
   workoutName: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' },
-  workoutDate: { fontSize: 14, color: '#555' },
-  emptyText: { textAlign: 'center', fontSize: 16, color: '#777', marginVertical: 16 },
+  workoutDate: { fontSize: 14, color: '#333' }, // G62 — #555 on the blue row was 3.7:1
+  emptyText: { textAlign: 'center', fontSize: 16, color: '#555', marginVertical: 16 }, // G62 — #777 was 4.48:1
   levelContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   subButton: { backgroundColor: '#3274ba', padding: 12, borderRadius: 8, marginBottom: 8, width: '23%' },
   subButtonText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },

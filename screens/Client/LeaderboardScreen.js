@@ -3,7 +3,7 @@
 // Shows the user their own opt-in state with a toggle (default opt-out).
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { authApi } from '../../api';  // G47 review
 import { Theme } from '../../constants/Theme';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -48,9 +48,9 @@ export default function LeaderboardScreen() {
   return (
     <ScreenWrapper>
       <CustomHeader title="Weekly Leaderboard" />
-      <View style={{ flex: 1, padding: Theme.spacing.m }}>
-        <GlassCard style={{ padding: Theme.spacing.m, marginBottom: Theme.spacing.m }}>
-          <Text style={{ color: Theme.colors.text, marginBottom: 8 }}>
+      <View style={styles.body}>
+        <GlassCard style={styles.card}>
+          <Text style={styles.intro}>
             {optedIn
               ? 'You are visible on the leaderboard (same trainer\'s clients).'
               : 'You are NOT visible on the leaderboard. Opt in to appear and to see other opted-in clients of your trainer.'}
@@ -59,21 +59,18 @@ export default function LeaderboardScreen() {
             accessibilityRole="button"
             accessibilityLabel={optedIn ? 'Opt out of the leaderboard' : 'Opt in to the leaderboard'}
             onPress={toggleOptIn}
-            style={{
-              backgroundColor: optedIn ? Theme.colors.error : Theme.colors.primary,
-              padding: 10, borderRadius: 6, alignItems: 'center',
-            }}
+            style={[styles.optButton, optedIn ? styles.optOutButton : styles.optInButton]}
           >
-            <Text style={{ color: '#fff', fontWeight: '700' }}>
+            <Text style={optedIn ? styles.optOutText : styles.optInText}>
               {optedIn ? 'Opt out' : 'Opt in to leaderboard'}
             </Text>
           </TouchableOpacity>
         </GlassCard>
 
         {loading && <ActivityIndicator size="large" color={Theme.colors.primary} />}
-        {error && <Text style={{ color: Theme.colors.error }}>{error}</Text>}
+        {error && <Text style={styles.errorText}>{error}</Text>}
         {!loading && rows.length === 0 && (
-          <Text style={{ color: Theme.colors.textSecondary }}>
+          <Text style={styles.emptyText}>
             No opted-in clients in your trainer's cohort yet.
           </Text>
         )}
@@ -81,17 +78,14 @@ export default function LeaderboardScreen() {
           data={rows}
           keyExtractor={(r) => String(r.user_id)}
           renderItem={({ item }) => (
-            <View style={{
-              flexDirection: 'row', alignItems: 'center', padding: 10,
-              backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 6, marginBottom: 6,
-            }}>
-              <Text style={{ color: Theme.colors.primary, fontWeight: '900', width: 36 }}>
+            <View style={styles.row}>
+              <Text style={styles.rank}>
                 #{item.rank}
               </Text>
-              <Text style={{ color: Theme.colors.text, flex: 1, textTransform: 'capitalize' }}>
+              <Text style={styles.name}>
                 {item.username}
               </Text>
-              <Text style={{ color: Theme.colors.textSecondary }}>
+              <Text style={styles.meta}>
                 {item.sets} sets · {item.reps} reps
               </Text>
             </View>
@@ -101,3 +95,26 @@ export default function LeaderboardScreen() {
     </ScreenWrapper>
   );
 }
+
+// G62 — named styles (were inline) so scripts/contrast_audit.mjs can read the text AND the
+// background of each pair from here. The opt-in/out button used white text on gold (1.69:1) and on
+// #FF4C4C (3.3:1): gold now carries dark text, opt-out uses the strong red fill under white.
+const styles = StyleSheet.create({
+  body: { flex: 1, padding: Theme.spacing.m },
+  card: { padding: Theme.spacing.m, marginBottom: Theme.spacing.m },
+  intro: { color: Theme.colors.text, marginBottom: 8 },
+  optButton: { padding: 10, borderRadius: 6, alignItems: 'center' },
+  optInButton: { backgroundColor: Theme.colors.primary },
+  optOutButton: { backgroundColor: Theme.colors.dangerStrong },
+  optInText: { color: Theme.colors.onPrimary, fontWeight: '700' },
+  optOutText: { color: '#FFFFFF', fontWeight: '700' },
+  errorText: { color: Theme.colors.error },
+  emptyText: { color: Theme.colors.textSecondary },
+  row: {
+    flexDirection: 'row', alignItems: 'center', padding: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 6, marginBottom: 6,
+  },
+  rank: { color: Theme.colors.primary, fontWeight: '900', width: 36 },
+  name: { color: Theme.colors.text, flex: 1, textTransform: 'capitalize' },
+  meta: { color: Theme.colors.textSecondary },
+});

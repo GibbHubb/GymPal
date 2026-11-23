@@ -154,7 +154,7 @@ export default function ClientsManagementScreen() {
           accessibilityLabel="Client username"
           style={styles.input}
           placeholder="Client username"
-          placeholderTextColor={Theme.colors.muted || '#888'}
+          placeholderTextColor={Theme.colors.textSecondary}
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"

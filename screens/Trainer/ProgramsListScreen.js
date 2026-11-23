@@ -88,7 +88,7 @@ export default function ProgramsListScreen() {
                 <TextInput
                     accessibilityLabel="New program name"
                     placeholder="e.g. Push/Pull/Legs"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={Theme.colors.textSecondary}
                     style={styles.input}
                     value={newName}
                     onChangeText={setNewName}

@@ -591,7 +591,7 @@ export default function TrainerScreen({ route, navigation }) {
                             keyboardType="numeric"
                             textAlign="center"
                             placeholder="0"
-                            placeholderTextColor="#555"
+                            placeholderTextColor={Theme.colors.textSecondary}
                           />
                         </View>
                         <View style={styles.dataBox}>
@@ -605,7 +605,7 @@ export default function TrainerScreen({ route, navigation }) {
                             keyboardType="numeric"
                             textAlign="center"
                             placeholder="0"
-                            placeholderTextColor="#555"
+                            placeholderTextColor={Theme.colors.textSecondary}
                           />
                         </View>
                       </View>
@@ -707,7 +707,7 @@ export default function TrainerScreen({ route, navigation }) {
         <View style={styles.liveSessionPanel}>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Templates" accessibilityState={{ expanded: showTemplates }} onPress={() => setShowTemplates(!showTemplates)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.liveSessionTitle}>📋 Templates</Text>
-            <Text style={{ color: Theme.colors.primary, fontSize: 12 }}>{showTemplates ? '▲' : '▼'}</Text>
+            <Text style={styles.templatesChevron}>{showTemplates ? '▲' : '▼'}</Text>
           </TouchableOpacity>
 
           {showTemplates && (
@@ -743,16 +743,16 @@ export default function TrainerScreen({ route, navigation }) {
 
               {/* Template list */}
               {templates.length === 0 ? (
-                <Text style={{ color: '#888', fontSize: 12 }}>No saved templates yet.</Text>
+                <Text style={styles.templatesEmpty}>No saved templates yet.</Text>
               ) : (
                 templates.map((t) => (
                   <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: Theme.colors.glassBorder }}>
                     <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Load template ${say(t.name)}, ${sayCount(t.exercises?.length, 'exercise')}`} style={{ flex: 1 }} onPress={() => handleLoadTemplate(t)}>
-                      <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{t.name}</Text>
-                      <Text style={{ color: '#888', fontSize: 11 }}>{t.exercises.length} exercises</Text>
+                      <Text style={styles.templateName}>{t.name}</Text>
+                      <Text style={styles.templateMeta}>{t.exercises.length} exercises</Text>
                     </TouchableOpacity>
                     <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete template ${say(t.name)}`} onPress={() => handleDeleteTemplate(t.id)}>
-                      <Text style={{ color: Theme.colors.error, fontSize: 16, paddingHorizontal: 8 }}>✕</Text>
+                      <Text style={styles.templateDeleteText}>✕</Text>
                     </TouchableOpacity>
                   </View>
                 ))
@@ -854,7 +854,8 @@ const styles = StyleSheet.create({
   timerControls: { flexDirection: "row", width: "50%", justifyContent: "space-between" },
   startButton: { backgroundColor: Theme.colors.primary, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center" },
   startButtonText: { color: "#000", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
-  pauseButton: { backgroundColor: Theme.colors.error, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center" },
+  // G62 — white on #FF4C4C was 3.3:1; the strong red fill carries white text (5.6:1)
+  pauseButton: { backgroundColor: Theme.colors.dangerStrong, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center" },
   pauseButtonText: { color: "#fff", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
   resetButton: { backgroundColor: Theme.colors.surface, paddingVertical: 12, borderRadius: Theme.borderRadius.m, width: "48%", alignItems: "center", borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   resetButtonText: { color: "#fff", fontWeight: "900", fontSize: 12, textTransform: 'uppercase' },
@@ -948,4 +949,10 @@ const styles = StyleSheet.create({
   liveSessionBtnEnd:   { backgroundColor: Theme.colors.error },
   liveSessionBtnPush:  { marginLeft: 8, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 6, backgroundColor: "#5c7cfa" },
   liveSessionBtnText:  { color: "#000", fontWeight: "900", fontSize: 12, textTransform: "uppercase" },
+  // G62 — the template list styles were inline; named so scripts/contrast_audit.mjs reads them.
+  templatesChevron: { color: Theme.colors.primary, fontSize: 12 },
+  templatesEmpty: { color: '#888', fontSize: 12 },
+  templateName: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  templateMeta: { color: '#888', fontSize: 11 },
+  templateDeleteText: { color: Theme.colors.error, fontSize: 16, paddingHorizontal: 8 },
 })

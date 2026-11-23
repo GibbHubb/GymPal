@@ -116,6 +116,6 @@ const styles = StyleSheet.create({
   backButtonText: { fontSize: 18, color: '#3274ba' },
   input: { width: '90%', padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 16 },
   saveButton: { backgroundColor: '#32a852', padding: 15, borderRadius: 8, width: '90%', alignItems: 'center' },
-  saveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  saveButtonText: { color: '#1A1A1A', fontWeight: 'bold', fontSize: 16 }, // G62 — white on this green was 3.1:1
   loading: { fontSize: 18, marginTop: 20 },
 });

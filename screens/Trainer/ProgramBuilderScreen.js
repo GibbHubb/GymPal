@@ -118,7 +118,7 @@ export default function ProgramBuilderScreen() {
         return (
             <ScreenWrapper>
                 <View style={styles.center}>
-                    <Text style={{ color: Theme.colors.text }}>Program not found.</Text>
+                    <Text style={styles.notFound}>Program not found.</Text>
                 </View>
             </ScreenWrapper>
         );
@@ -195,7 +195,7 @@ export default function ProgramBuilderScreen() {
                                 style={styles.modalRow}
                                 onPress={() => updateCell(pickerCell.week, pickerCell.dow, null)}
                             >
-                                <Text style={[styles.modalRowText, { color: '#fca5a5' }]}>✕ Clear (rest day)</Text>
+                                <Text style={styles.modalRowDanger}>✕ Clear (rest day)</Text>
                             </TouchableOpacity>
                             {templates.length === 0 && (
                                 <Text style={styles.empty}>No templates yet. Create one in the workout builder first.</Text>
@@ -219,7 +219,7 @@ export default function ProgramBuilderScreen() {
                             style={styles.modalRow}
                             onPress={() => setPickerCell(null)}
                         >
-                            <Text style={[styles.modalRowText, { color: Theme.colors.textSecondary }]}>Close</Text>
+                            <Text style={styles.modalRowMuted}>Close</Text>
                         </TouchableOpacity>
                     </TouchableOpacity>
                 </TouchableOpacity>
@@ -241,7 +241,7 @@ export default function ProgramBuilderScreen() {
                             accessibilityLabel="Client user ID"
                             keyboardType="number-pad"
                             placeholder="123"
-                            placeholderTextColor="rgba(255,255,255,0.4)"
+                            placeholderTextColor={Theme.colors.textSecondary}
                             style={styles.input}
                             value={assignUsername}
                             onChangeText={setAssignUsername}
@@ -250,7 +250,7 @@ export default function ProgramBuilderScreen() {
                         <TextInput
                             accessibilityLabel="Start date, year month day"
                             placeholder="2026-05-12"
-                            placeholderTextColor="rgba(255,255,255,0.4)"
+                            placeholderTextColor={Theme.colors.textSecondary}
                             style={styles.input}
                             value={assignDate}
                             onChangeText={setAssignDate}
@@ -321,6 +321,10 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)',
     },
     modalRowText: { color: Theme.colors.text, fontSize: 14 },
+    // G62 — were inline, named so scripts/contrast_audit.mjs reads them from source.
+    modalRowDanger: { color: '#fca5a5', fontSize: 14 },
+    modalRowMuted: { color: Theme.colors.textSecondary, fontSize: 14 },
+    notFound: { color: Theme.colors.text },
     label: {
         color: 'rgba(255,255,255,0.5)', fontSize: 11,
         textTransform: 'uppercase', letterSpacing: 1.2,

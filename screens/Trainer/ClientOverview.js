@@ -187,7 +187,7 @@ export default function ClientOverview({ navigation }) {
               style={[styles.roleButton, selectedRole === 'client' && styles.roleSelected]}
               onPress={() => setSelectedRole('client')}
             >
-              <Text style={styles.roleText}>Client</Text>
+              <Text style={[styles.roleText, selectedRole === 'client' && styles.roleTextSelected]}>Client</Text>
             </TouchableOpacity>
             <TouchableOpacity
               accessibilityRole="radio"
@@ -196,7 +196,7 @@ export default function ClientOverview({ navigation }) {
               style={[styles.roleButton, selectedRole === 'trainer' && styles.roleSelected]}
               onPress={() => setSelectedRole('trainer')}
             >
-              <Text style={styles.roleText}>Trainer</Text>
+              <Text style={[styles.roleText, selectedRole === 'trainer' && styles.roleTextSelected]}>Trainer</Text>
             </TouchableOpacity>
 
             <View style={styles.modalButtons}>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   header: { fontSize: 24, fontWeight: 'bold', color: '#3274ba', marginBottom: 16 },
   searchInput: { borderWidth: 1, borderColor: '#8ebce6', borderRadius: 8, padding: 12, width: '90%', marginBottom: 16 },
   addButton: { backgroundColor: '#32a852', padding: 12, borderRadius: 8, marginBottom: 16 },
-  addButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  addButtonText: { color: '#1A1A1A', fontWeight: 'bold', fontSize: 16 }, // G62 — white on this green was 3.1:1
   row: { flex: 1, justifyContent: 'space-between', marginBottom: 12 },
   userCard: { flex: 1, alignItems: 'center', backgroundColor: Theme.colors.primary, padding: 12, marginHorizontal: 4, borderRadius: 8 },
   username: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' },
@@ -235,8 +235,14 @@ const styles = StyleSheet.create({
   roleButton: { padding: 10, marginVertical: 5, borderRadius: 8, width: '50%', alignItems: 'center', borderWidth: 1, borderColor: '#3274ba' },
   roleSelected: { backgroundColor: '#3274ba' },
   modalButtons: { flexDirection: 'row', marginTop: 15 },
-  cancelButton: { backgroundColor: '#d9534f', padding: 12, borderRadius: 8, marginRight: 10 },
+  cancelButton: { backgroundColor: Theme.colors.dangerStrong, padding: 12, borderRadius: 8, marginRight: 10 }, // G62 — #d9534f was 4.0:1 under white
   saveButton: { backgroundColor: '#32a852', padding: 12, borderRadius: 8 },
   cancelText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  saveText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  saveText: { color: '#1A1A1A', fontWeight: 'bold', fontSize: 16 }, // G62 — white on this green was 3.1:1
+  // G62 — these were referenced but never defined (platform-default text colour); the default
+  // dark text on the selected blue role measured 4.4:1, so the selected role now reads white.
+  roleLabel: { color: '#1A1A1A' },
+  roleText: { color: '#1A1A1A' },
+  roleTextSelected: { color: '#FFFFFF', fontWeight: 'bold' },
+  emptyMessage: { color: '#555' },
 });

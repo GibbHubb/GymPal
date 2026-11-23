@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   logoutBtn: {
     paddingVertical: Theme.spacing.s,
     paddingHorizontal: Theme.spacing.m,
-    backgroundColor: 'rgba(255, 76, 76, 0.15)',
+    backgroundColor: 'rgba(255, 76, 76, 0.1)', // G62 — was 0.15: red text on it fell to 4.3:1
     borderRadius: Theme.borderRadius.round,
     borderWidth: 1,
     borderColor: 'rgba(255, 76, 76, 0.3)',
